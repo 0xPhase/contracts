@@ -5,8 +5,8 @@ import {ERC20SnapshotUpgradeable} from "@openzeppelin/contracts-upgradeable/toke
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -15,6 +15,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
 import {CreditAccountV1} from "../account/versions/CreditAccountV1.sol";
+import {AccessControl} from "../core/AccessControl.sol";
 import {ITreasury} from "../treasury/ITreasury.sol";
 import {StringLib} from "../lib/StringLib.sol";
 import {ILiquidator} from "./ILiquidator.sol";
@@ -24,6 +25,7 @@ import {Storage} from "../misc/Storage.sol";
 import {Manager} from "../core/Manager.sol";
 import {IInterest} from "./IInterest.sol";
 import {ICash} from "../core/ICash.sol";
+import {IDB} from "../db/IDB.sol";
 
 interface IVault {
   struct LiquidationInfo {
@@ -41,6 +43,16 @@ interface IVault {
     uint256 deposit;
     uint256 debtShares;
     uint256 healthTarget;
+  }
+
+  struct UserYield {
+    // User yield
+    EnumerableSet.AddressSet yieldSources;
+  }
+
+  struct YieldInfo {
+    // Yield info
+    bool enabled;
   }
 
   event CollateralAdded(uint256 indexed user, uint256 amount);
@@ -113,6 +125,22 @@ interface IVault {
     bool useMax
   ) external;
 
+  function depositYield(
+    uint256 user,
+    address yield,
+    uint256 amount
+  ) external;
+
+  function withdrawYield(
+    uint256 user,
+    address yield,
+    uint256 amount
+  ) external;
+
+  function withdrawFullYield(uint256 user, address yield) external;
+
+  function withdrawEverythingYield(uint256 user) external;
+
   function setHealthTarget(uint256 user, uint256 healthTarget) external;
 
   function liquidateUser(uint256 user) external;
@@ -125,6 +153,12 @@ interface IVault {
 
   function deposit(uint256 user) external view returns (uint256);
 
+  function yieldDeposit(uint256 user) external view returns (uint256);
+
+  function pureDeposit(uint256 user) external view returns (uint256);
+
+  function yieldSources(uint256 user) external view returns (address[] memory);
+
   function price() external view returns (uint256);
 
   function collectiveCollateral() external view returns (uint256);
@@ -133,6 +167,8 @@ interface IVault {
     external
     view
     returns (LiquidationInfo memory);
+
+  function allYieldSources() external view returns (address[] memory);
 
   function userInfo(uint256 user)
     external
@@ -143,6 +179,10 @@ interface IVault {
       uint256 debtShares,
       uint256 healthTarget
     );
+
+  function yieldInfo(address user) external view returns (bool enabled);
+
+  function manager() external view returns (Manager);
 
   function cash() external view returns (ICash);
 
@@ -197,6 +237,9 @@ abstract contract VaultV1Storage is
   bytes32 public constant STEP_MIN_DEPOSIT = keccak256("STEP_MIN_DEPOSIT");
 
   mapping(uint256 => UserInfo) public userInfo;
+  mapping(uint256 => UserYield) internal _userYield;
+  EnumerableSet.AddressSet internal _yieldSources;
+  mapping(address => YieldInfo) public yieldInfo;
 
   Manager public manager;
   CreditAccountV1 public creditAccount;
@@ -222,7 +265,7 @@ abstract contract VaultV1Storage is
   bool public marketsLocked;
 
   function initializeVaultV1(
-    Manager manager_,
+    IDB db_,
     Storage varStorage_,
     IERC20 asset_,
     IOracle priceOracle_,
@@ -234,10 +277,14 @@ abstract contract VaultV1Storage is
     uint256 initialHealthTargetMinimum_,
     uint256 initialHealthTargetMaximum_
   ) external initialize("v1") initializer {
-    manager = manager_;
-    creditAccount = CreditAccountV1(manager_.getContract("CREDIT_ACCOUNT"));
-    cash = ICash(manager_.getContract("CASH"));
-    treasury = ITreasury(manager_.getContract("TREASURY"));
+    _setDB(db_);
+
+    address managerAddress = db_.getAddress("MANAGER");
+
+    manager = Manager(managerAddress);
+    creditAccount = CreditAccountV1(db_.getAddress("CREDIT_ACCOUNT"));
+    cash = ICash(db_.getAddress("CASH"));
+    treasury = ITreasury(db_.getAddress("TREASURY"));
 
     varStorage = varStorage_;
     asset = asset_;
@@ -253,9 +300,7 @@ abstract contract VaultV1Storage is
 
     lastDebtUpdate = block.timestamp;
 
-    address managerAddress = address(manager_);
-
-    _grantRole(MANAGER_ROLE, managerAddress);
+    _grantRoleKey(MANAGER_ROLE, keccak256("MANAGER"));
 
     emit NewPriceOracle(managerAddress, priceOracle_);
     emit NewInterest(managerAddress, interest_);

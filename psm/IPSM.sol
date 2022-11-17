@@ -7,6 +7,7 @@ import {ProxyOwnable} from "../proxy/utils/ProxyOwnable.sol";
 import {IOracle} from "../oracle/IOracle.sol";
 import {Manager} from "../core/Manager.sol";
 import {ICash} from "../core/ICash.sol";
+import {IDB} from "../db/IDB.sol";
 
 interface IPSM {
   struct AssetInfo {
@@ -64,14 +65,15 @@ abstract contract PSMV1Storage is ProxyOwnable, IPSM {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   mapping(address => AssetInfo) public assetInfo;
+  IDB public db;
   Manager public manager;
   ICash public cash;
 
   EnumerableSet.AddressSet internal _assetList;
 
-  function initializePSMV1(Manager manager_) external initialize("v1") {
-    manager = manager_;
-
-    cash = ICash(manager_.getContract("CASH"));
+  function initializePSMV1(IDB db_) external initialize("v1") {
+    db = db_;
+    manager = Manager(db_.getAddress("MANAGER"));
+    cash = ICash(db_.getAddress("CASH"));
   }
 }

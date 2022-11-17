@@ -18,6 +18,10 @@ contract TestUSDC is ERC20, ERC20Burnable {
     counter[to]++;
   }
 
+  function mintAny(address to, uint256 amount) external {
+    _mint(to, amount);
+  }
+
   function decimals() public view virtual override returns (uint8) {
     return 6;
   }

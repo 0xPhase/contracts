@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-
 import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
+import {AccessControl} from "../core/AccessControl.sol";
+import {IDB} from "../db/IDB.sol";
 
 interface ITreasury {
   struct TokenInfo {
@@ -89,7 +89,10 @@ abstract contract TreasuryStorageV1 is
   mapping(bytes32 => Cause) internal _cause;
   Cause internal _globalCause;
 
-  function initializeTreasuryV1(address manager) public initialize("v1") {
-    _grantRole(DEFAULT_ADMIN_ROLE, manager);
+  function initializeTreasuryV1(IDB db_) public initialize("v1") {
+    _setDB(db_);
+
+    _grantRoleKey(DEFAULT_ADMIN_ROLE, keccak256("MANAGER"));
+    _grantRoleKey(MANAGER_ROLE, keccak256("VAULT"));
   }
 }

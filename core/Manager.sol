@@ -9,30 +9,10 @@ import {TreasuryV1} from "../treasury/TreasuryV1.sol";
 import {CallLib} from "../lib/CallLib.sol";
 
 contract Manager is Ownable {
-  mapping(bytes32 => address) public contracts;
-  address public dev;
-
-  event ContractSet(bytes32 indexed id, address addr);
-
-  event NewDev(address indexed setter, address newDev);
-
-  modifier onlyAuthorized() {
-    require(
-      msg.sender == address(this) || msg.sender == owner(),
-      "Manager: Caller not authorized"
-    );
-
-    _;
-  }
-
-  constructor(address dev_) {
-    dev = dev_;
-  }
-
   function batchCall(bytes calldata data)
     external
     payable
-    onlyAuthorized
+    onlyOwner
     returns (bytes memory result)
   {
     uint256 offset = 0;
@@ -61,30 +41,5 @@ contract Manager is Ownable {
       offset += callDataLength;
       result = abi.encodePacked(result, uint32(callResult.length), callResult);
     }
-  }
-
-  function setDev(address newDev) external {
-    require(
-      msg.sender == address(this) || msg.sender == dev,
-      "Manager: Not the dev"
-    );
-
-    dev = newDev;
-
-    emit NewDev(msg.sender, newDev);
-  }
-
-  function setContract(bytes32 id, address addr) external onlyAuthorized {
-    contracts[id] = addr;
-
-    emit ContractSet(id, addr);
-  }
-
-  function getContract(string memory name) external view returns (address) {
-    return contracts[keccak256(bytes(name))];
-  }
-
-  function contractExists(bytes32 id) external view returns (bool) {
-    return contracts[id] != address(0);
   }
 }

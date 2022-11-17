@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
 
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -13,11 +13,13 @@ import {IOracle} from "../../oracle/IOracle.sol";
 import {ShareLib} from "../../lib/ShareLib.sol";
 import {ILiquidator} from "../ILiquidator.sol";
 import {Storage} from "../../misc/Storage.sol";
+import {IYield} from "../../yield/IYield.sol";
 import {MathLib} from "../../lib/MathLib.sol";
 import {VaultV1Storage} from "../IVault.sol";
 import {IInterest} from "../IInterest.sol";
 
 contract VaultV1 is VaultV1Storage {
+  using EnumerableSet for EnumerableSet.AddressSet;
   using SafeERC20 for IERC20;
   using StringLib for string;
   using ShareLib for uint256;
@@ -68,6 +70,19 @@ contract VaultV1 is VaultV1Storage {
     _;
   }
 
+  modifier yieldCheck(address yield, bool allowDisabled) {
+    if (allowDisabled) {
+      require(
+        _yieldSources.contains(yield),
+        "VaultV1: Yield source does not exist"
+      );
+    } else {
+      require(yieldInfo[yield].enabled, "VaultV1: Yield source not enabled");
+    }
+
+    _;
+  }
+
   function addCollateral(uint256 user, uint256 amount)
     external
     override
@@ -92,7 +107,10 @@ contract VaultV1 is VaultV1Storage {
     freezeCheck
     updateDebt
   {
-    require(deposit(user) >= amount, "VaultV1: Removing too much collateral");
+    require(
+      userInfo[user].deposit >= amount,
+      "VaultV1: Removing too much collateral"
+    );
 
     uint256 value = depositValue(user);
     uint256 debt = debtValue(user);
@@ -136,6 +154,11 @@ contract VaultV1 is VaultV1Storage {
     uint256 debt = debtValue(user);
     uint256 fee = (amount * borrowFee) / 1 ether;
     uint256 borrow = amount + fee;
+
+    require(
+      debt + borrow >= _stepMinDeposit(),
+      "VaultV1: Has to borrow more than minimum"
+    );
 
     if (value < debt + borrow) {
       if (useMax && value > debt) {
@@ -192,13 +215,17 @@ contract VaultV1 is VaultV1Storage {
   {
     require(shares > 0, "VaultV1: Cannot repay 0 shares");
 
-    require(
-      userInfo[user].debtShares >= shares,
-      "VaultV1: Repaying too many shares"
-    );
+    uint256 userShares = userInfo[user].debtShares;
+
+    require(userShares >= shares, "VaultV1: Repaying too many shares");
 
     uint256 toRepay = _debtValue(shares);
     uint256 userBalance = IERC20(address(cash)).balanceOf(msg.sender);
+
+    require(
+      _debtValue(userShares - shares) >= _stepMinDeposit(),
+      "VaultV1: Has to repay to zero or have more debt than minimum"
+    );
 
     if (toRepay > userBalance) {
       if (useMax) {
@@ -225,6 +252,90 @@ contract VaultV1 is VaultV1Storage {
     emit USDRepaid(user, shares, toRepay);
   }
 
+  function depositYield(
+    uint256 user,
+    address yield,
+    uint256 amount
+  )
+    external
+    yieldCheck(yield, false)
+    ownerCheck(user, msg.sender)
+    updateUser(user)
+    freezeCheck
+    updateDebt
+  {
+    UserInfo storage info = userInfo[user];
+
+    require(info.deposit >= amount, "VaultV1: Not enough deposit");
+
+    info.deposit -= amount;
+
+    asset.safeApprove(yield, amount);
+    IYield(yield).receiveDeposit(user, amount);
+
+    require(isSolvent(user), "VaultV1: User not solvent after yield deposit");
+
+    _userYield[user].yieldSources.add(yield);
+  }
+
+  function withdrawYield(
+    uint256 user,
+    address yield,
+    uint256 amount
+  )
+    external
+    yieldCheck(yield, true)
+    ownerCheck(user, msg.sender)
+    updateUser(user)
+    freezeCheck
+    updateDebt
+  {
+    IYield source = IYield(yield);
+
+    require(
+      source.balance(user) >= amount,
+      "VaultV1: Withdrawing too much from yield source"
+    );
+
+    uint256 result = source.receiveWithdraw(user, amount);
+
+    userInfo[user].deposit += result;
+
+    if (source.balance(user) == 0) {
+      _userYield[user].yieldSources.remove(yield);
+    }
+  }
+
+  function withdrawFullYield(uint256 user, address yield)
+    external
+    yieldCheck(yield, true)
+    ownerCheck(user, msg.sender)
+    updateUser(user)
+    freezeCheck
+    updateDebt
+  {
+    IYield source = IYield(yield);
+
+    require(
+      _userYield[user].yieldSources.remove(yield),
+      "VaultV1: User not invested in yield source"
+    );
+
+    uint256 result = source.receiveFullWithdraw(user);
+
+    userInfo[user].deposit += result;
+  }
+
+  function withdrawEverythingYield(uint256 user)
+    external
+    ownerCheck(user, msg.sender)
+    updateUser(user)
+    freezeCheck
+    updateDebt
+  {
+    _withdrawEverythingYield(user);
+  }
+
   function setHealthTarget(uint256 user, uint256 healthTarget)
     external
     override
@@ -237,6 +348,7 @@ contract VaultV1 is VaultV1Storage {
       healthTarget >= healthTargetMinimum,
       "VaultV1: Health target too low"
     );
+
     require(
       healthTarget <= healthTargetMaximum,
       "VaultV1: Health target too high"
@@ -256,6 +368,8 @@ contract VaultV1 is VaultV1Storage {
     LiquidationInfo memory info = liquidationInfo(user);
 
     require(!info.solvent, "VaultV1: User is solvent");
+
+    _withdrawEverythingYield(user);
 
     if (info.rebate > 0) {
       treasury.spend(REBATE_CAUSE, address(cash), info.rebate, msg.sender);
@@ -344,6 +458,24 @@ contract VaultV1 is VaultV1Storage {
     emit MaxMintIncreased(msg.sender, maxMint, increase);
   }
 
+  function addYieldSource(address source) external onlyRole(MANAGER_ROLE) {
+    require(_yieldSources.add(source), "VaultV1: Yield source already added");
+
+    yieldInfo[source].enabled = true;
+  }
+
+  function setYieldSourceState(address source, bool state)
+    external
+    onlyRole(MANAGER_ROLE)
+  {
+    require(
+      _yieldSources.contains(source),
+      "VaultV1: Yield source does not exist"
+    );
+
+    yieldInfo[source].enabled = state;
+  }
+
   function isSolvent(uint256 user) public view returns (bool) {
     return depositValue(user) >= debtValue(user);
   }
@@ -353,11 +485,39 @@ contract VaultV1 is VaultV1Storage {
   }
 
   function depositValue(uint256 user) public view returns (uint256) {
-    return _depositValue(userInfo[user].deposit);
+    return _depositValue(deposit(user));
   }
 
   function deposit(uint256 user) public view returns (uint256) {
+    return yieldDeposit(user) + pureDeposit(user);
+  }
+
+  function yieldDeposit(uint256 user) public view returns (uint256 result) {
+    UserYield storage yield = _userYield[user];
+    uint256 length = yield.yieldSources.length();
+
+    for (uint256 i = 0; i < length; i++) {
+      result += IYield(yield.yieldSources.at(i)).balance(user);
+    }
+  }
+
+  function pureDeposit(uint256 user) public view returns (uint256) {
     return userInfo[user].deposit;
+  }
+
+  function yieldSources(uint256 user)
+    public
+    view
+    returns (address[] memory sources)
+  {
+    UserYield storage yield = _userYield[user];
+    uint256 length = yield.yieldSources.length();
+
+    sources = new address[](length);
+
+    for (uint256 i = 0; i < length; i++) {
+      sources[i] = yield.yieldSources.at(i);
+    }
   }
 
   function price() public view override returns (uint256) {
@@ -385,9 +545,8 @@ contract VaultV1 is VaultV1Storage {
     }
 
     uint256 tPrice = price();
-    uint256 collateralValue = _scaleFromAsset(
-      userInfo[user].deposit * price()
-    ) / 1 ether;
+    uint256 collateralValue = _scaleFromAsset(deposit(user) * price()) /
+      1 ether;
     uint256 cappedChange = Math.min(collateralValue, collateralChange);
     uint256 pureChange = _withoutFee(cappedChange);
     uint256 totalFee = cappedChange - pureChange;
@@ -412,6 +571,16 @@ contract VaultV1 is VaultV1Storage {
 
     return
       LiquidationInfo(false, borrowChange, realTokens, protocolFee, rebate);
+  }
+
+  function allYieldSources() public view returns (address[] memory sources) {
+    uint256 length = _yieldSources.length();
+
+    sources = new address[](length);
+
+    for (uint256 i = 0; i < length; i++) {
+      sources[i] = _yieldSources.at(i);
+    }
   }
 
   function getInterest() public view returns (uint256) {
@@ -459,6 +628,20 @@ contract VaultV1 is VaultV1Storage {
     return true;
   }
 
+  function _withdrawEverythingYield(uint256 user) internal {
+    UserYield storage yields = _userYield[user];
+    UserInfo storage info = userInfo[user];
+
+    while (yields.yieldSources.length() > 0) {
+      address yield = yields.yieldSources.at(0);
+      uint256 amount = IYield(yield).receiveFullWithdraw(user);
+
+      info.deposit += amount;
+
+      yields.yieldSources.remove(yield);
+    }
+  }
+
   function _debtIncrease() internal view returns (uint256) {
     if (block.timestamp > lastDebtUpdate) {
       uint256 difference = block.timestamp - lastDebtUpdate;
@@ -493,17 +676,14 @@ contract VaultV1 is VaultV1Storage {
     returns (uint256 debtChange, uint256 collateralChange)
   {
     UserInfo storage info = userInfo[user];
-    uint256 collateral = _scaleFromAsset(info.deposit * price()) / 1 ether;
+    uint256 collateral = _scaleFromAsset(deposit(user) * price()) / 1 ether;
     uint256 debt = debtValue(user);
 
     if (collateral == 0 || debt == 0) return (0, 0);
 
     uint256 feefullDebt = _withFee(debt);
 
-    if (
-      collateral <= varStorage.readUint256(STEP_MIN_DEPOSIT) ||
-      feefullDebt >= collateral
-    ) {
+    if (debt < _stepMinDeposit() || feefullDebt >= collateral) {
       return (debt, feefullDebt);
     }
 
@@ -541,6 +721,10 @@ contract VaultV1 is VaultV1Storage {
   function _treasuryLiquidationPortion() internal view returns (uint256) {
     return
       Math.min(varStorage.readUint256(TREASURY_LIQUIDATION_PORTION), 0.5 ether);
+  }
+
+  function _stepMinDeposit() internal view returns (uint256) {
+    return varStorage.readUint256(STEP_MIN_DEPOSIT);
   }
 
   function _scaleFromAsset(uint256 amount) internal view returns (uint256) {
