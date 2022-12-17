@@ -3,8 +3,8 @@ pragma solidity ^0.8.11;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+import {IVault, LiquidationInfo} from "../vault/IVault.sol";
 import {ILiquidator} from "../vault/ILiquidator.sol";
-import {IVault} from "../vault/IVault.sol";
 import {User} from "../misc/User.sol";
 
 contract SimpleLiquidator is Ownable, User, ILiquidator {
@@ -15,7 +15,7 @@ contract SimpleLiquidator is Ownable, User, ILiquidator {
     IVault(vault).liquidateUser(user);
   }
 
-  function receiveLiquidation(uint256, IVault.LiquidationInfo memory)
+  function receiveLiquidation(uint256, LiquidationInfo memory)
     external
     view
     override

@@ -9,12 +9,15 @@ abstract contract ProxyInitializable {
   using StorageSlot for bytes32;
   using StringLib for string;
 
+  event VersionInitialized(string indexed version);
+
   modifier initialize(string memory version) {
     StorageSlot.BooleanSlot storage slot = _slot(version).getBooleanSlot();
 
     if (!slot.value) {
       _;
 
+      emit VersionInitialized(version);
       slot.value = true;
     }
   }

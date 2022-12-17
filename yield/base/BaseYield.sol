@@ -19,21 +19,12 @@ abstract contract BaseYield is AccessControl, IYield {
   mapping(uint256 => uint256) public shares;
   IVault public vault;
   IERC20 public asset;
-  Manager public manager;
 
   uint256 internal _totalShares;
 
   modifier onlyVault() {
     require(msg.sender == address(vault), "BaseYield: Caller is not vault");
     _;
-  }
-
-  function _initializeSimpleYield(IDB db_, IVault vault_) internal {
-    _setDB(db_);
-
-    vault = vault_;
-    asset = vault_.asset();
-    manager = Manager(db_.getAddress("MANAGER"));
   }
 
   function receiveDeposit(uint256 user, uint256 amount)
@@ -129,6 +120,13 @@ abstract contract BaseYield is AccessControl, IYield {
   }
 
   function totalBalance() public view virtual returns (uint256);
+
+  function _initializeSimpleYield(IDB db_, IVault vault_) internal {
+    _setDB(db_);
+
+    vault = vault_;
+    asset = vault_.asset();
+  }
 
   // solhint-disable-next-line no-empty-blocks
   function _preDeposit(uint256 user, uint256 amount) internal virtual {}

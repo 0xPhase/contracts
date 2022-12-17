@@ -1,0 +1,15 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.11;
+
+import {ClockStorage, IClock} from "./IClock.sol";
+import {ClockBase} from "./ClockBase.sol";
+
+contract ClockFacet is ClockBase, IClock {
+  function time() public view override returns (uint256) {
+    return _time();
+  }
+
+  function lastTime() public view override returns (uint256) {
+    return _lastTime();
+  }
+}

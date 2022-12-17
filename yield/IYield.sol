@@ -18,6 +18,8 @@ interface IYield {
 
   function asset() external view returns (IERC20);
 
+  function totalBalance() external view returns (uint256);
+
   function balance(uint256 user) external view returns (uint256);
 
   function shares(uint256 user) external view returns (uint256);

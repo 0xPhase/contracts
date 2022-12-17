@@ -2,78 +2,83 @@
 pragma solidity ^0.8.11;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import {ProxyOwnable} from "../proxy/utils/ProxyOwnable.sol";
+import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
+import {IAavePool} from "../interfaces/aave/IAavePool.sol";
+import {AccessControl} from "../core/AccessControl.sol";
 import {IOracle} from "../oracle/IOracle.sol";
 import {Manager} from "../core/Manager.sol";
 import {ICash} from "../core/ICash.sol";
 import {IDB} from "../db/IDB.sol";
 
 interface IPSM {
-  struct AssetInfo {
-    bool enabled;
-    uint256 buyFee;
-    uint256 sellFee;
-    IOracle oracle;
-  }
+  event BuyFeeSet(uint256 indexed fee);
 
-  event CashBought(
-    address indexed buyer,
-    address asset,
-    uint256 amount,
-    uint256 rawTokens,
-    uint256 indexed fee
-  );
+  event SellFeeSet(uint256 indexed fee);
 
-  event CashSold(
-    address indexed seller,
-    address asset,
-    uint256 amount,
-    uint256 rawTokens,
-    uint256 indexed fee
-  );
+  function buyCash(uint256 amount) external;
 
-  event AssetSet(
-    address indexed asset,
-    uint256 buyFee,
-    uint256 sellFee,
-    IOracle indexed oracle
-  );
+  function sellCash(uint256 amount) external;
 
-  event AssetRemoved(address indexed asset);
+  function totalBalance() external view returns (uint256);
 
-  function buyCash(uint256 amount, address asset) external returns (uint256);
+  function totalTraded() external view returns (uint256);
 
-  function sellCash(uint256 amount, address asset) external returns (uint256);
+  function totalFees() external view returns (uint256);
 
-  function assetInfo(address asset)
-    external
-    view
-    returns (
-      bool enabled,
-      uint256 buyFee,
-      uint256 sellFee,
-      IOracle oracle
-    );
+  function bondAddress() external view returns (address);
 
-  function assetList() external view returns (address[] memory);
+  function buyFee() external view returns (uint256);
 
-  function assetPrice(address asset) external view returns (uint256);
+  function sellFee() external view returns (uint256);
 }
 
-abstract contract PSMV1Storage is ProxyOwnable, IPSM {
+abstract contract PSMV1Storage is AccessControl, ProxyInitializable, IPSM {
   using EnumerableSet for EnumerableSet.AddressSet;
 
-  mapping(address => AssetInfo) public assetInfo;
-  IDB public db;
-  Manager public manager;
+  bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+
   ICash public cash;
+  IAavePool public aavePool;
+  IERC20 public aToken;
+  IERC20 public underlying;
+  address public bondAddress;
+  uint256 public buyFee;
+  uint256 public sellFee;
+  uint256 public totalTraded;
+  uint256 public totalFees;
 
-  EnumerableSet.AddressSet internal _assetList;
+  uint8 internal _underlyingDecimals;
+  uint8 internal _aTokenDecimals;
+  uint256 internal _lastUnderlyingBalance;
 
-  function initializePSMV1(IDB db_) external initialize("v1") {
-    db = db_;
-    manager = Manager(db_.getAddress("MANAGER"));
+  function initializePSMV1(
+    IDB db_,
+    IAavePool aavePool_,
+    IERC20 underlying_,
+    uint256 buyFee_,
+    uint256 sellFee_
+  ) external initialize("v1") {
+    _setDB(db_);
+
     cash = ICash(db_.getAddress("CASH"));
+    aavePool = aavePool_;
+    aToken = IERC20(
+      aavePool_.getReserveData(address(underlying_)).aTokenAddress
+    );
+    underlying = underlying_;
+    bondAddress = db_.getAddress("BOND");
+    buyFee = buyFee_;
+    sellFee = sellFee_;
+
+    _underlyingDecimals = ERC20(address(underlying_)).decimals();
+    _aTokenDecimals = ERC20(address(aToken)).decimals();
+
+    _grantRoleKey(DEFAULT_ADMIN_ROLE, keccak256("MANAGER"));
+
+    emit BuyFeeSet(buyFee_);
+    emit SellFeeSet(sellFee_);
   }
 }

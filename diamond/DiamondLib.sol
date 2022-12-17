@@ -66,7 +66,7 @@ library DiamondLib {
           _diamondCut[facetIndex].functionSelectors
         );
       } else {
-        revert("DiamondLibCut: Incorrect FacetCutAction");
+        revert("DiamondLib: Incorrect FacetCutAction");
       }
     }
 
@@ -81,14 +81,14 @@ library DiamondLib {
   ) internal {
     require(
       _functionSelectors.length > 0,
-      "DiamondLibCut: No selectors in facet to cut"
+      "DiamondLib: No selectors in facet to cut"
     );
 
     DiamondStorage storage ds = diamondStorage();
 
     require(
       _facetAddress != address(0),
-      "DiamondLibCut: Add facet can't be address(0)"
+      "DiamondLib: Add facet can't be address(0)"
     );
 
     uint96 selectorPosition = uint96(
@@ -113,7 +113,7 @@ library DiamondLib {
 
       require(
         oldFacetAddress == address(0),
-        "DiamondLibCut: Can't add function that already exists"
+        "DiamondLib: Can't add function that already exists"
       );
 
       addFunction(ds, selector, selectorPosition, _facetAddress);
@@ -128,14 +128,14 @@ library DiamondLib {
   ) internal {
     require(
       _functionSelectors.length > 0,
-      "DiamondLibCut: No selectors in facet to cut"
+      "DiamondLib: No selectors in facet to cut"
     );
 
     DiamondStorage storage ds = diamondStorage();
 
     require(
       _facetAddress != address(0),
-      "DiamondLibCut: Add facet can't be address(0)"
+      "DiamondLib: Add facet can't be address(0)"
     );
 
     uint96 selectorPosition = uint96(
@@ -160,7 +160,7 @@ library DiamondLib {
 
       require(
         oldFacetAddress != _facetAddress,
-        "DiamondLibCut: Can't replace function with same function"
+        "DiamondLib: Can't replace function with same function"
       );
 
       removeFunction(ds, oldFacetAddress, selector);
@@ -176,7 +176,7 @@ library DiamondLib {
   ) internal {
     require(
       _functionSelectors.length > 0,
-      "DiamondLibCut: No selectors in facet to cut"
+      "DiamondLib: No selectors in facet to cut"
     );
 
     DiamondStorage storage ds = diamondStorage();
@@ -184,7 +184,7 @@ library DiamondLib {
     // if function does not exist then do nothing and return
     require(
       _facetAddress == address(0),
-      "DiamondLibCut: Remove facet address must be address(0)"
+      "DiamondLib: Remove facet address must be address(0)"
     );
 
     for (
@@ -230,12 +230,12 @@ library DiamondLib {
   ) internal {
     require(
       _facetAddress != address(0),
-      "DiamondLibCut: Can't remove function that doesn't exist"
+      "DiamondLib: Can't remove function that doesn't exist"
     );
     // an immutable function is a function defined directly in a diamond
     require(
       _facetAddress != address(this),
-      "DiamondLibCut: Can't remove immutable function"
+      "DiamondLib: Can't remove immutable function"
     );
 
     // replace selector with last selector, then delete last selector
