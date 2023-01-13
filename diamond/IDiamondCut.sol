@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 interface IDiamondCut {
   // Add -> 0, Replace -> 1, Remove -> 2
@@ -15,6 +15,10 @@ interface IDiamondCut {
     bytes4[] functionSelectors;
   }
 
+  /// @notice Event emitted when the diamond is cut
+  /// @param _diamondCut The list of cuts to do
+  /// @param _init The optional initializer address
+  /// @param _calldata The optional initializer data
   event DiamondCut(FacetCut[] _diamondCut, address _init, bytes _calldata);
 
   /// @notice Add/replace/remove any number of functions and optionally execute

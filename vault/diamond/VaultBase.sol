@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -8,11 +8,13 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {AccessControlBase} from "../../diamond/AccessControl/AccessControlBase.sol";
 import {VaultStorage, UserInfo, UserYield, IVault} from "../IVault.sol";
 import {OwnableBase} from "../../diamond/Ownable/OwnableBase.sol";
+import {ITreasury} from "../../treasury/ITreasury.sol";
 import {VaultConstants} from "./VaultConstants.sol";
 import {IOracle} from "../../oracle/IOracle.sol";
 import {ShareLib} from "../../lib/ShareLib.sol";
 import {IYield} from "../../yield/IYield.sol";
 import {MathLib} from "../../lib/MathLib.sol";
+import {ICash} from "../../core/ICash.sol";
 import {IInterest} from "../IInterest.sol";
 
 abstract contract VaultBase is OwnableBase, AccessControlBase {
@@ -54,6 +56,10 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   event HealthTargetMinimumSet(uint256 newHealthTargetMinimum);
 
   event HealthTargetMaximumSet(uint256 newHealthTargetMaximum);
+
+  event AdapterSet(address adapter);
+
+  event AdapterDataSet(bytes adapterData);
 
   event MarketStateSet(bool newState);
 
@@ -132,20 +138,22 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
     if (treasuryAmount == 0 || rebateAmount == 0 || bondAmount == 0)
       return false;
 
+    ICash cash = _s.cash;
+    ITreasury treasury = _s.treasury;
     uint256 totalTreasury = treasuryAmount + rebateAmount;
 
-    _s.cash.mintManager(address(_s.treasury), totalTreasury);
-    _s.cash.mintManager(address(_s.bond), bondAmount);
+    cash.mintManager(address(treasury), totalTreasury);
+    cash.mintManager(address(_s.bond), bondAmount);
 
-    _s.treasury.increaseUnsafe(
+    treasury.increaseUnsafe(
       VaultConstants.PROTOCOL_CAUSE,
-      address(_s.cash),
+      address(cash),
       treasuryAmount
     );
 
-    _s.treasury.increaseUnsafe(
+    treasury.increaseUnsafe(
       VaultConstants.REBATE_CAUSE,
-      address(_s.cash),
+      address(cash),
       rebateAmount
     );
 
@@ -153,8 +161,10 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   }
 
   function _debtIncrease() internal view returns (uint256) {
-    if (block.timestamp > _s.lastDebtUpdate) {
-      uint256 difference = block.timestamp - _s.lastDebtUpdate;
+    uint256 lastDebtUpdate = _s.lastDebtUpdate;
+
+    if (block.timestamp > lastDebtUpdate) {
+      uint256 difference = block.timestamp - lastDebtUpdate;
 
       uint256 increase = (_s.collectiveDebt * difference * _interest()) /
         (365.25 days * 1 ether);
@@ -186,14 +196,16 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   }
 
   function _debtValue(uint256 shares) internal view returns (uint256) {
-    if (shares == 0 || _s.totalDebtShares == 0 || _s.collectiveDebt == 0)
-      return 0;
+    uint256 totalDebtShares = _s.totalDebtShares;
+    uint256 collectiveDebt = _s.collectiveDebt;
+
+    if (shares == 0 || totalDebtShares == 0 || collectiveDebt == 0) return 0;
 
     return
       ShareLib.calculateAmount(
         shares,
-        _s.totalDebtShares,
-        _s.collectiveDebt + _debtIncrease()
+        totalDebtShares,
+        collectiveDebt + _debtIncrease()
       );
   }
 

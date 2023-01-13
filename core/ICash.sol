@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {ERC20BurnableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 import {ERC20SnapshotUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20SnapshotUpgradeable.sol";
@@ -12,11 +12,18 @@ import {AccessControl} from "../core/AccessControl.sol";
 import {IDB} from "../db/IDB.sol";
 
 interface ICash {
+  /// @notice Takes a snapshot of the current token state
   function snapshot() external;
 
+  /// @notice Mints tokens for the manager
+  /// @param to The address to mint tokens to
+  /// @param amount The amount of tokens to mint
   function mintManager(address to, uint256 amount) external;
 
-  function burnManager(address to, uint256 amount) external;
+  /// @notice Burns tokens for the manager
+  /// @param from The address to burn tokens from
+  /// @param amount The amount of tokens to burn
+  function burnManager(address from, uint256 amount) external;
 }
 
 abstract contract CashV1Storage is
@@ -32,13 +39,20 @@ abstract contract CashV1Storage is
   bytes32 public constant SNAPSHOT_ROLE = keccak256("SNAPSHOT_ROLE");
   bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
+  /// @notice Disables initialization on the target contract
+  constructor() {
+    _disableInitialization();
+  }
+
+  /// @notice Initializes the cash contract on version 1
+  /// @param db_ The protocol DB
   function initializeCashV1(IDB db_) external initialize("v1") initializer {
     __ERC20_init("Phase Dollar", "CASH");
     __ERC20Burnable_init();
     __ERC20Snapshot_init();
     __ERC20Permit_init("Phase Dollar");
 
-    _setDB(db_);
+    _initializeDB(db_);
 
     _grantRoleKey(DEFAULT_ADMIN_ROLE, keccak256("MANAGER"));
     _grantRoleKey(SNAPSHOT_ROLE, keccak256("DEV"));
@@ -48,6 +62,7 @@ abstract contract CashV1Storage is
 
   // The following functions are overrides required by Solidity.
 
+  /// @inheritdoc	ERC20Upgradeable
   function _beforeTokenTransfer(
     address from,
     address to,

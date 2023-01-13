@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
 import {AccessControl} from "../core/AccessControl.sol";
@@ -89,8 +89,12 @@ abstract contract TreasuryStorageV1 is
   mapping(bytes32 => Cause) internal _cause;
   Cause internal _globalCause;
 
+  constructor() {
+    _disableInitialization();
+  }
+
   function initializeTreasuryV1(IDB db_) public initialize("v1") {
-    _setDB(db_);
+    _initializeDB(db_);
 
     _grantRoleKey(DEFAULT_ADMIN_ROLE, keccak256("MANAGER"));
     _grantRoleKey(MANAGER_ROLE, keccak256("VAULT"));

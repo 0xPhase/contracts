@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {IDiamondCut} from "./IDiamondCut.sol";
 import {DiamondLib} from "./DiamondLib.sol";
 
 contract Diamond {
+  /// @param cut The list of cuts to do
+  /// @param init The optional initializer address
+  /// @param initdata The optional initializer data
   constructor(
     IDiamondCut.FacetCut[] memory cut,
     address init,

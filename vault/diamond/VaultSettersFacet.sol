@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -75,6 +75,21 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
     _s.liquidationFee = newLiquidationFee;
 
     emit LiquidationFeeSet(newLiquidationFee);
+  }
+
+  function setAdapter(address newAdapter) external onlyRole(_MANAGER_ROLE) {
+    _s.adapter = newAdapter;
+
+    emit AdapterSet(newAdapter);
+  }
+
+  function setAdapterData(bytes memory newAdapterData)
+    external
+    onlyRole(_MANAGER_ROLE)
+  {
+    _s.adapterData = newAdapterData;
+
+    emit AdapterDataSet(newAdapterData);
   }
 
   function setMarketState(bool newState) external onlyRole(_MANAGER_ROLE) {

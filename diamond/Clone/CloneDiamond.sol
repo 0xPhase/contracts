@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {OwnableBase} from "../Ownable/OwnableBase.sol";
 import {IDiamondLoupe} from "../IDiamondLoupe.sol";

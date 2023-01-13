@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {IDiamondCut} from "./IDiamondCut.sol";
 
+/// @notice Error emitted when the initialization reverts
+/// @param _initializationContractAddress The initializer address
+/// @param _calldata The initializer data
 error InitializationFunctionReverted(
   address _initializationContractAddress,
   bytes _calldata
@@ -35,13 +38,20 @@ library DiamondLib {
   bytes32 public constant DIAMOND_STORAGE_SLOT =
     bytes32(uint256(keccak256("diamond.standard.diamond.storage")) - 1);
 
+  /// @notice Event emitted when the diamond is cut
+  /// @param _diamondCut The list of cuts to do
+  /// @param _init The optional initializer address
+  /// @param _calldata The optional initializer data
   event DiamondCut(
     IDiamondCut.FacetCut[] _diamondCut,
     address _init,
     bytes _calldata
   );
 
-  // Internal function version of diamondCut
+  /// @notice Internal function to cut the diamond
+  /// @param _diamondCut The list of cuts to do
+  /// @param _init The optional initializer address
+  /// @param _calldata The optional initializer data
   function diamondCut(
     IDiamondCut.FacetCut[] memory _diamondCut,
     address _init,
@@ -75,6 +85,9 @@ library DiamondLib {
     initializeDiamondCut(_init, _calldata);
   }
 
+  /// @notice Adds functions to the diamond
+  /// @param _facetAddress The facet address
+  /// @param _functionSelectors The function selectors to add
   function addFunctions(
     address _facetAddress,
     bytes4[] memory _functionSelectors
@@ -122,6 +135,9 @@ library DiamondLib {
     }
   }
 
+  /// @notice Replaces functions in the diamond
+  /// @param _facetAddress The facet address
+  /// @param _functionSelectors The function selectors to replace
   function replaceFunctions(
     address _facetAddress,
     bytes4[] memory _functionSelectors
@@ -170,6 +186,9 @@ library DiamondLib {
     }
   }
 
+  /// @notice Removes functions from the diamond
+  /// @param _facetAddress The facet address
+  /// @param _functionSelectors The function selectors to remove
   function removeFunctions(
     address _facetAddress,
     bytes4[] memory _functionSelectors
@@ -202,6 +221,9 @@ library DiamondLib {
     }
   }
 
+  /// @notice Adds a facet to the diamond
+  /// @param ds The diamond storage pointer
+  /// @param _facetAddress The facet address to add
   function addFacet(DiamondStorage storage ds, address _facetAddress) internal {
     ds.facetFunctionSelectors[_facetAddress].facetAddressPosition = ds
       .facetAddresses
@@ -210,6 +232,11 @@ library DiamondLib {
     ds.facetAddresses.push(_facetAddress);
   }
 
+  /// @notice Adds a function to the diamond
+  /// @param ds The diamond storage pointer
+  /// @param _selector The function selector to add
+  /// @param _selectorPosition The function selector position
+  /// @param _facetAddress The facet address
   function addFunction(
     DiamondStorage storage ds,
     bytes4 _selector,
@@ -223,6 +250,10 @@ library DiamondLib {
     ds.selectorToFacetAndPosition[_selector].facetAddress = _facetAddress;
   }
 
+  /// @notice Removes a function from the diamond
+  /// @param ds The diamond storage pointer
+  /// @param _facetAddress The facet address
+  /// @param _selector The function selector to remove
   function removeFunction(
     DiamondStorage storage ds,
     address _facetAddress,
@@ -232,6 +263,7 @@ library DiamondLib {
       _facetAddress != address(0),
       "DiamondLib: Can't remove function that doesn't exist"
     );
+
     // an immutable function is a function defined directly in a diamond
     require(
       _facetAddress != address(this),
@@ -290,6 +322,9 @@ library DiamondLib {
     }
   }
 
+  /// @notice Initializes the diamond
+  /// @param _init The initializer address
+  /// @param _calldata The initializer data
   function initializeDiamondCut(address _init, bytes memory _calldata)
     internal
   {
@@ -314,6 +349,8 @@ library DiamondLib {
     }
   }
 
+  /// @notice Returns the diamond storage pointer
+  /// @return ds The diamond storage pointer
   function diamondStorage() internal pure returns (DiamondStorage storage ds) {
     bytes32 position = DIAMOND_STORAGE_SLOT;
 

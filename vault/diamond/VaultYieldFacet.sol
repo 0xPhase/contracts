@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -35,6 +35,7 @@ contract VaultYieldFacet is VaultBase, IVaultYield {
     uint256 amount
   )
     external
+    override
     yieldCheck(yieldSource, false)
     ownerCheck(user, msg.sender)
     updateUser(user)
@@ -50,7 +51,6 @@ contract VaultYieldFacet is VaultBase, IVaultYield {
     _s.asset.safeApprove(yieldSource, amount);
     IYield(yieldSource).receiveDeposit(user, amount);
 
-    // TODO: isSolvent call
     require(
       _isSolvent(user),
       "VaultYieldFacet: User not solvent after yield deposit"
@@ -65,6 +65,7 @@ contract VaultYieldFacet is VaultBase, IVaultYield {
     uint256 amount
   )
     external
+    override
     yieldCheck(yieldSource, true)
     ownerCheck(user, msg.sender)
     updateUser(user)
@@ -89,6 +90,7 @@ contract VaultYieldFacet is VaultBase, IVaultYield {
 
   function withdrawFullYield(uint256 user, address yieldSource)
     external
+    override
     yieldCheck(yieldSource, true)
     ownerCheck(user, msg.sender)
     updateUser(user)
@@ -109,6 +111,7 @@ contract VaultYieldFacet is VaultBase, IVaultYield {
 
   function withdrawEverythingYield(uint256 user)
     external
+    override
     ownerCheck(user, msg.sender)
     updateUser(user)
     freezeCheck

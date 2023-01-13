@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -69,15 +69,26 @@ struct VaultStorage {
   uint256 collectiveDebt;
   uint256 totalDebtShares;
   uint256 lastDebtUpdate;
+  // Adapter
+  address adapter;
+  bytes adapterData;
   // Lock state
   bool contextLocked;
   bool marketsLocked;
 }
 
 interface IVaultAccounting {
-  function addCollateral(uint256 user, uint256 amount) external;
+  function addCollateral(
+    uint256 user,
+    uint256 amount,
+    bytes memory extraData
+  ) external payable;
 
-  function removeCollateral(uint256 user, uint256 amount) external;
+  function removeCollateral(
+    uint256 user,
+    uint256 amount,
+    bytes memory extraData
+  ) external;
 
   function mintUSD(uint256 user, uint256 amount) external;
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {AccessControlBase} from "./AccessControlBase.sol";
 import {IDiamondCut} from "../IDiamondCut.sol";
@@ -8,6 +8,10 @@ import {DiamondLib} from "../DiamondLib.sol";
 bytes32 constant DIAMOND_CUT_ROLE = keccak256("DIAMOND_CUT_ROLE");
 
 contract AccessControlCutFacet is AccessControlBase, IDiamondCut {
+  /// @notice External function to cut the diamond requiring the DIAMOND_CUT_ROLE role
+  /// @param cut The list of cuts to do
+  /// @param init The optional initializer address
+  /// @param initdata The optional initializer data
   function diamondCut(
     IDiamondCut.FacetCut[] memory cut,
     address init,

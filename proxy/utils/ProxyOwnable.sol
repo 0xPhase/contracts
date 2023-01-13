@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
@@ -68,8 +68,6 @@ abstract contract ProxyOwnable is ProxyInitializable {
     internal
     initialize("owner")
   {
-    require(owner() == address(0), "ProxyOwnable: Cannot reinitialize owner");
-
     _transferOwnership(firstOwner);
   }
 

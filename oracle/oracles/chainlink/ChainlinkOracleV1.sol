@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
+
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {ChainlinkOracleStorageV1} from "./IChainlinkOracle.sol";
 import {IAggregator} from "../../../interfaces/IAggregator.sol";
 import {MathLib} from "../../../lib/MathLib.sol";
 
 contract ChainlinkOracleV1 is ChainlinkOracleStorageV1 {
+  EnumerableSet.AddressSet private mySet;
+
   function setFeed(address asset, address feed) external override onlyOwner {
     priceFeeds[asset] = feed;
 

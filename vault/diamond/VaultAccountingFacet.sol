@@ -1,32 +1,53 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {IVaultAccounting, UserInfo} from "../IVault.sol";
 import {ShareLib} from "../../lib/ShareLib.sol";
-import {IVaultAccounting} from "../IVault.sol";
+import {CallLib} from "../../lib/CallLib.sol";
+import {ICash} from "../../core/ICash.sol";
 import {VaultBase} from "./VaultBase.sol";
+import {IAdapter} from "../IAdapter.sol";
 
 contract VaultAccountingFacet is VaultBase, IVaultAccounting {
   using SafeERC20 for IERC20;
 
-  function addCollateral(uint256 user, uint256 amount)
-    external
-    override
-    updateUser(user)
-    freezeCheck
-    updateDebt
-  {
+  function addCollateral(
+    uint256 user,
+    uint256 amount,
+    bytes memory extraData
+  ) external payable override updateUser(user) freezeCheck updateDebt {
     require(amount > 0, "VaultAccountingFacet: Cannot add 0 collateral");
 
-    _s.asset.safeTransferFrom(msg.sender, address(this), amount);
+    if (_s.adapter != address(0)) {
+      CallLib.delegateCallFunc(
+        _s.adapter,
+        abi.encodeWithSelector(
+          IAdapter.deposit.selector,
+          user,
+          amount,
+          msg.value,
+          extraData
+        )
+      );
+    } else {
+      require(msg.value == 0, "VaultAccountingFacet: Message value not 0");
+
+      _s.asset.safeTransferFrom(msg.sender, address(this), amount);
+    }
+
     _s.userInfo[user].deposit += amount;
 
     emit CollateralAdded(user, amount);
   }
 
-  function removeCollateral(uint256 user, uint256 amount)
+  function removeCollateral(
+    uint256 user,
+    uint256 amount,
+    bytes memory extraData
+  )
     public
     override
     ownerCheck(user, msg.sender)
@@ -34,22 +55,37 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     freezeCheck
     updateDebt
   {
+    UserInfo storage userInfo = _s.userInfo[user];
+
     require(
-      _s.userInfo[user].deposit >= amount,
+      userInfo.deposit >= amount,
       "VaultAccountingFacet: Removing too much collateral"
     );
 
-    _s.userInfo[user].deposit -= amount;
-    _s.asset.safeTransfer(msg.sender, amount);
+    userInfo.deposit -= amount;
 
     require(_isSolvent(user), "VaultAccountingFacet: User no longer solvent");
+
+    if (_s.adapter != address(0)) {
+      CallLib.delegateCallFunc(
+        _s.adapter,
+        abi.encodeWithSelector(
+          IAdapter.withdraw.selector,
+          user,
+          amount,
+          extraData
+        )
+      );
+    } else {
+      _s.asset.safeTransfer(msg.sender, amount);
+    }
 
     emit CollateralRemoved(user, amount);
   }
 
   function mintUSD(uint256 user, uint256 amount)
     public
-    // override
+    override
     ownerCheck(user, msg.sender)
     updateUser(user)
     freezeCheck
@@ -65,7 +101,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     bool useMax
   )
     public
-    // override
+    override
     ownerCheck(user, msg.sender)
     updateUser(user)
     freezeCheck
@@ -75,7 +111,8 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
     uint256 value = _depositValueUser(user);
     uint256 debt = _debtValueUser(user);
-    uint256 fee = (amount * _s.borrowFee) / 1 ether;
+    uint256 borrowFee = _s.borrowFee;
+    uint256 fee = (amount * borrowFee) / 1 ether;
     uint256 borrow = amount + fee;
 
     require(
@@ -89,7 +126,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
         mintUSD(
           user,
-          ((value - debt) * 1 ether) / (1 ether + _s.borrowFee),
+          ((value - debt) * 1 ether) / (1 ether + borrowFee),
           false
         );
       } else {
@@ -99,9 +136,11 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
     _mintFees(fee);
 
-    uint256 shares = _s.totalDebtShares == 0
+    uint256 totalDebtShares = _s.totalDebtShares;
+
+    uint256 shares = totalDebtShares == 0
       ? borrow
-      : ShareLib.calculateShares(borrow, _s.totalDebtShares, _s.collectiveDebt);
+      : ShareLib.calculateShares(borrow, totalDebtShares, _s.collectiveDebt);
 
     _s.collectiveDebt += borrow;
     _s.userInfo[user].debtShares += shares;
@@ -114,7 +153,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
   function repayUSD(uint256 user, uint256 shares)
     public
-    // override
+    override
     ownerCheck(user, msg.sender)
     updateUser(user)
     freezeCheck
@@ -130,7 +169,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     bool useMax
   )
     public
-    // override
+    override
     ownerCheck(user, msg.sender)
     updateUser(user)
     freezeCheck
@@ -138,15 +177,17 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
   {
     require(shares > 0, "VaultAccountingFacet: Cannot repay 0 shares");
 
-    uint256 userShares = _s.userInfo[user].debtShares;
+    UserInfo storage userInfo = _s.userInfo[user];
+    uint256 userShares = userInfo.debtShares;
 
     require(
       userShares >= shares,
       "VaultAccountingFacet: Repaying too many shares"
     );
 
+    ICash cash = _s.cash;
     uint256 toRepay = _debtValue(shares);
-    uint256 userBalance = IERC20(address(_s.cash)).balanceOf(msg.sender);
+    uint256 userBalance = IERC20(address(cash)).balanceOf(msg.sender);
 
     // solhint-disable-next-line reason-string
     require(
@@ -175,10 +216,10 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     }
 
     _s.collectiveDebt -= toRepay;
-    _s.userInfo[user].debtShares -= shares;
+    userInfo.debtShares -= shares;
     _s.totalDebtShares -= shares;
 
-    _s.cash.burnManager(msg.sender, toRepay);
+    cash.burnManager(msg.sender, toRepay);
 
     emit USDRepaid(user, shares, toRepay);
   }

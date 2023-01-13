@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {AccessControlBase} from "./AccessControlBase.sol";
 import {IAccessControl} from "./IAccessControl.sol";
 import {IDB} from "../../db/IDB.sol";
 
 contract AccessControlFacet is IAccessControl, AccessControlBase {
+  /// @inheritdoc	IAccessControl
   function db() external view override returns (IDB) {
     return _acs().db;
   }
 
+  /// @inheritdoc	IAccessControl
   function grantRoleAccount(bytes32 role, address account)
     public
     virtual
@@ -19,6 +21,7 @@ contract AccessControlFacet is IAccessControl, AccessControlBase {
     _grantRoleAccount(role, account);
   }
 
+  /// @inheritdoc	IAccessControl
   function grantRoleKey(bytes32 role, bytes32 key)
     public
     virtual
@@ -28,6 +31,7 @@ contract AccessControlFacet is IAccessControl, AccessControlBase {
     _grantRoleKey(role, key);
   }
 
+  /// @inheritdoc	IAccessControl
   function revokeRoleAccount(bytes32 role, address account)
     public
     virtual
@@ -37,6 +41,7 @@ contract AccessControlFacet is IAccessControl, AccessControlBase {
     _revokeRoleAccount(role, account);
   }
 
+  /// @inheritdoc	IAccessControl
   function revokeRoleKey(bytes32 role, bytes32 key)
     public
     virtual
@@ -46,6 +51,7 @@ contract AccessControlFacet is IAccessControl, AccessControlBase {
     _revokeRoleKey(role, key);
   }
 
+  /// @inheritdoc	IAccessControl
   function renounceRole(bytes32 role, address account) public virtual override {
     require(
       account == msg.sender,
@@ -55,6 +61,7 @@ contract AccessControlFacet is IAccessControl, AccessControlBase {
     _revokeRoleAccount(role, account);
   }
 
+  /// @inheritdoc	IAccessControl
   function hasRole(bytes32 role, address account)
     public
     view
@@ -65,6 +72,7 @@ contract AccessControlFacet is IAccessControl, AccessControlBase {
     return _hasRole(role, account);
   }
 
+  /// @inheritdoc	IAccessControl
   function getRoleAdmin(bytes32 role)
     public
     view

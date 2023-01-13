@@ -1,22 +1,24 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {LiquidationInfo, UserInfo, IVaultLiquidation} from "../IVault.sol";
+import {ITreasury} from "../../treasury/ITreasury.sol";
 import {VaultConstants} from "./VaultConstants.sol";
 import {ShareLib} from "../../lib/ShareLib.sol";
 import {ILiquidator} from "../ILiquidator.sol";
 import {MathLib} from "../../lib/MathLib.sol";
 import {VaultBase} from "./VaultBase.sol";
+import {ICash} from "../../core/ICash.sol";
 
 contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
   using SafeERC20 for IERC20;
 
   function liquidateUser(uint256 user)
     external
-    // override
+    override
     freezeCheck
     updateDebt
   {
@@ -26,10 +28,15 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
 
     _withdrawEverythingYield(user);
 
+    UserInfo storage userInfo = _s.userInfo[user];
+    ITreasury treasury = _s.treasury;
+    ICash cash = _s.cash;
+    IERC20 asset = _s.asset;
+
     if (info.rebate > 0) {
-      _s.treasury.spend(
+      treasury.spend(
         VaultConstants.REBATE_CAUSE,
-        address(_s.cash),
+        address(cash),
         info.rebate,
         msg.sender
       );
@@ -41,22 +48,22 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
       _s.collectiveDebt
     );
 
-    _s.userInfo[user].deposit -= info.assetReward;
-    _s.userInfo[user].debtShares -= debtShares;
+    userInfo.deposit -= info.assetReward;
+    userInfo.debtShares -= debtShares;
 
     _s.totalDebtShares -= debtShares;
     _s.collectiveDebt -= info.borrowChange;
 
-    _s.asset.safeTransfer(address(_s.treasury), info.protocolFee);
-    _s.treasury.increaseUnsafe(
+    asset.safeTransfer(address(treasury), info.protocolFee);
+    treasury.increaseUnsafe(
       VaultConstants.PROTOCOL_CAUSE,
-      address(_s.asset),
+      address(asset),
       info.protocolFee
     );
 
-    _s.asset.safeTransfer(msg.sender, info.assetReward - info.protocolFee);
+    asset.safeTransfer(msg.sender, info.assetReward - info.protocolFee);
     _checkLiquidator(msg.sender, user, info);
-    _s.cash.burnManager(msg.sender, info.borrowChange);
+    cash.burnManager(msg.sender, info.borrowChange);
 
     emit UserLiquidated(
       user,
@@ -71,8 +78,8 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
   function liquidationInfo(uint256 user)
     public
     view
+    override
     returns (LiquidationInfo memory)
-  // override
   {
     if (_isSolvent(user)) {
       return LiquidationInfo(true, 0, 0, 0, 0);
@@ -158,15 +165,16 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
       return (debt, feefullDebt);
     }
 
+    uint256 maxCollateralRatio = _s.maxCollateralRatio;
     uint256 targetHealth = info.healthTarget;
 
     debtChange = ((1 ether *
       (debt *
         1 ether**uint256(2) -
-        (collateral * targetHealth * _s.maxCollateralRatio))) /
+        (collateral * targetHealth * maxCollateralRatio))) /
       (1 ether**uint256(3) -
-        (targetHealth * _s.maxCollateralRatio * 1 ether) -
-        (_s.liquidationFee * targetHealth * _s.maxCollateralRatio)));
+        (targetHealth * maxCollateralRatio * 1 ether) -
+        (_s.liquidationFee * targetHealth * maxCollateralRatio)));
 
     collateralChange = _withFee(debtChange);
 

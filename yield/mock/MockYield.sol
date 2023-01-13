@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {TestUSDC} from "../../test/TestUSDC.sol";
 import {BaseYield} from "../base/BaseYield.sol";
@@ -38,10 +38,11 @@ contract MockYield is BaseYield, Clock {
   function _createYield() internal {
     uint256 amount = _yieldCreated();
 
+    _updateTime();
+
     if (amount == 0) return;
 
     TestUSDC(address(asset)).mintAny(address(this), amount);
-    _updateTime();
   }
 
   function _yieldCreated() internal view returns (uint256) {

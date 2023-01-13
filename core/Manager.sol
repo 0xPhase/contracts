@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -9,6 +9,9 @@ import {TreasuryV1} from "../treasury/TreasuryV1.sol";
 import {CallLib} from "../lib/CallLib.sol";
 
 contract Manager is Ownable {
+  /// @notice Does a batch of calls
+  /// @param data The compressed and optimized call list
+  /// @return result The combined results of all the calls
   function batchCall(bytes calldata data)
     external
     payable

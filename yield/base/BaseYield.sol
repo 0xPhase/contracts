@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -7,6 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AccessControl} from "../../core/AccessControl.sol";
 import {ShareLib} from "../../lib/ShareLib.sol";
 import {Manager} from "../../core/Manager.sol";
+import {MathLib} from "../../lib/MathLib.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IDB} from "../../db/IDB.sol";
 import {IYield} from "../IYield.sol";
@@ -34,16 +35,13 @@ abstract contract BaseYield is AccessControl, IYield {
   {
     _preDeposit(user, amount);
 
-    uint256 currentBalance = totalBalance();
-
     asset.safeTransferFrom(address(vault), address(this), amount);
-    _onDeposit(user, amount);
-
-    uint256 balanceChange = totalBalance() - currentBalance;
 
     uint256 share = _totalShares == 0
-      ? balanceChange
-      : ShareLib.calculateShares(balanceChange, _totalShares, currentBalance);
+      ? amount
+      : ShareLib.calculateShares(amount, _totalShares, totalBalance());
+
+    _onDeposit(user, amount, share);
 
     shares[user] += share;
     _totalShares += share;
@@ -59,26 +57,26 @@ abstract contract BaseYield is AccessControl, IYield {
   {
     require(_totalShares > 0, "BaseYield: No shares exist");
 
-    uint256 share = ShareLib.calculateShares(amount, _totalShares, amount);
+    _preWithdraw(user, amount);
+
+    uint256 share = ShareLib.calculateShares(
+      amount,
+      _totalShares,
+      totalBalance()
+    );
 
     require(shares[user] >= share, "BaseYield: Not enough shares");
 
-    _preWithdraw(user, amount);
+    _onWithdraw(user, amount, share);
 
-    uint256 currentBalance = asset.balanceOf(address(this));
-
-    _onWithdraw(user, amount);
-
-    uint256 balanceChange = asset.balanceOf(address(this)) - currentBalance;
-
-    asset.safeTransfer(address(vault), balanceChange);
+    asset.safeTransfer(address(vault), amount);
 
     shares[user] -= share;
     _totalShares -= share;
 
     emit Withdraw(user, amount, share);
 
-    return balanceChange;
+    return amount;
   }
 
   function receiveFullWithdraw(uint256 user)
@@ -91,28 +89,26 @@ abstract contract BaseYield is AccessControl, IYield {
 
     if (share == 0) return 0;
 
-    uint256 amount = ShareLib.calculateAmount(
+    _preWithdraw(user, 0);
+
+    uint256 rawAmount = ShareLib.calculateAmount(
       share,
       _totalShares,
       totalBalance()
     );
 
-    _preWithdraw(user, amount);
+    uint256 amount = MathLib.min(rawAmount, asset.balanceOf(address(this)));
 
-    uint256 currentBalance = asset.balanceOf(address(this));
+    _onWithdraw(user, amount, share);
 
-    _onWithdraw(user, amount);
-
-    uint256 balanceChange = asset.balanceOf(address(this)) - currentBalance;
-
-    asset.safeTransfer(address(vault), balanceChange);
+    asset.safeTransfer(address(vault), amount);
 
     shares[user] -= share;
     _totalShares -= share;
 
     emit Withdraw(user, amount, share);
 
-    return balanceChange;
+    return amount;
   }
 
   function balance(uint256 user) external view virtual returns (uint256) {
@@ -122,7 +118,7 @@ abstract contract BaseYield is AccessControl, IYield {
   function totalBalance() public view virtual returns (uint256);
 
   function _initializeSimpleYield(IDB db_, IVault vault_) internal {
-    _setDB(db_);
+    _initializeDB(db_);
 
     vault = vault_;
     asset = vault_.asset();
@@ -134,9 +130,15 @@ abstract contract BaseYield is AccessControl, IYield {
   // solhint-disable-next-line no-empty-blocks
   function _preWithdraw(uint256 user, uint256 amount) internal virtual {}
 
-  // solhint-disable-next-line no-empty-blocks
-  function _onDeposit(uint256 user, uint256 amount) internal virtual {}
+  function _onDeposit(
+    uint256 user,
+    uint256 amount,
+    uint256 share // solhint-disable-next-line no-empty-blocks
+  ) internal virtual {}
 
-  // solhint-disable-next-line no-empty-blocks
-  function _onWithdraw(uint256 user, uint256 amount) internal virtual {}
+  function _onWithdraw(
+    uint256 user,
+    uint256 amount,
+    uint256 share // solhint-disable-next-line no-empty-blocks
+  ) internal virtual {}
 }

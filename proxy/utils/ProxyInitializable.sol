@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
@@ -12,17 +12,32 @@ abstract contract ProxyInitializable {
   event VersionInitialized(string indexed version);
 
   modifier initialize(string memory version) {
-    StorageSlot.BooleanSlot storage slot = _slot(version).getBooleanSlot();
+    StorageSlot.BooleanSlot storage disabledSlot = _disabledSlot()
+      .getBooleanSlot();
 
-    if (!slot.value) {
+    StorageSlot.BooleanSlot storage versionSlot = _versionSlot(version)
+      .getBooleanSlot();
+
+    if (!versionSlot.value && !disabledSlot.value) {
       _;
 
       emit VersionInitialized(version);
-      slot.value = true;
+      versionSlot.value = true;
     }
   }
 
-  function _slot(string memory version) internal pure returns (bytes32) {
+  function _disableInitialization() internal {
+    StorageSlot.BooleanSlot storage disabledSlot = _disabledSlot()
+      .getBooleanSlot();
+
+    disabledSlot.value = true;
+  }
+
+  function _disabledSlot() internal pure returns (bytes32) {
+    return bytes32(uint256(keccak256("proxy.initializable.disabled")) - 1);
+  }
+
+  function _versionSlot(string memory version) internal pure returns (bytes32) {
     return
       bytes32(
         uint256(

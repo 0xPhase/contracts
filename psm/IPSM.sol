@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -54,6 +54,10 @@ abstract contract PSMV1Storage is AccessControl, ProxyInitializable, IPSM {
   uint8 internal _aTokenDecimals;
   uint256 internal _lastUnderlyingBalance;
 
+  constructor() {
+    _disableInitialization();
+  }
+
   function initializePSMV1(
     IDB db_,
     IAavePool aavePool_,
@@ -61,7 +65,7 @@ abstract contract PSMV1Storage is AccessControl, ProxyInitializable, IPSM {
     uint256 buyFee_,
     uint256 sellFee_
   ) external initialize("v1") {
-    _setDB(db_);
+    _initializeDB(db_);
 
     cash = ICash(db_.getAddress("CASH"));
     aavePool = aavePool_;

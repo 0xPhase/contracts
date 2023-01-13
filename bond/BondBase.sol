@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -27,21 +27,31 @@ abstract contract BondBase is
 
   BondStorage internal _s;
 
+  /// @notice Event emitted when the bond duration is set
+  /// @param duration The new bond duration
   event BondDurationSet(uint256 indexed duration);
 
-  modifier ownerCheck(uint256 tokenId, address sender) {
+  /// @notice Checks if tokenId is owned by the owner
+  /// @param tokenId The token to check for
+  /// @param owner The address to check against
+  modifier ownerCheck(uint256 tokenId, address owner) {
     require(
-      sender == IERC721(address(_s.creditAccount)).ownerOf(tokenId),
+      owner == IERC721(address(_s.creditAccount)).ownerOf(tokenId),
       "BondBase: Not owner of token"
     );
 
     _;
   }
 
+  /// @notice Gets the total balance
+  /// @return Total balance
   function _totalBalance() internal view returns (uint256) {
     return IERC20(address(_s.cash)).balanceOf(address(this));
   }
 
+  /// @notice A curve function
+  /// @param x The x position on the curve
+  /// @return y The y position on the curve
   function _curve(uint256 x) internal pure returns (uint256 y) {
     if (x == 0) return _BASE_VALUE;
     if (x > _ETH_PRECISION) revert("BondBase: Argument x out of bounds");

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -28,9 +28,11 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
     uint256 initialBorrowFee_,
     uint256 initialLiquidationFee_,
     uint256 initialHealthTargetMinimum_,
-    uint256 initialHealthTargetMaximum_
+    uint256 initialHealthTargetMaximum_,
+    address adapter_,
+    bytes memory adapterData_
   ) external initialize("v1") {
-    _setDB(db_);
+    _initializeDB(db_);
 
     address managerAddress = db_.getAddress("MANAGER");
 
@@ -52,10 +54,13 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
     _s.healthTargetMinimum = initialHealthTargetMinimum_;
     _s.healthTargetMaximum = initialHealthTargetMaximum_;
 
+    _s.adapter = adapter_;
+    _s.adapterData = adapterData_;
+
     _s.lastDebtUpdate = block.timestamp;
 
     _grantRoleKey(_MANAGER_ROLE, keccak256("MANAGER"));
-    initializeVaultOwner(managerAddress);
+    _transferOwnership(managerAddress);
 
     emit PriceOracleSet(priceOracle_);
     emit InterestSet(interest_);
@@ -64,9 +69,12 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
     emit LiquidationFeeSet(initialLiquidationFee_);
     emit HealthTargetMinimumSet(initialHealthTargetMinimum_);
     emit HealthTargetMaximumSet(initialHealthTargetMaximum_);
+    emit AdapterSet(adapter_);
+    emit AdapterDataSet(adapterData_);
   }
 
   function initializeVaultOwner(address owner) public initialize("owner") {
     _transferOwnership(owner);
+    _disableInitialization();
   }
 }

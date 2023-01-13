@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -11,6 +11,7 @@ import {BondBase} from "./BondBase.sol";
 contract BondAccountingFacet is BondBase, IBondAccounting {
   using SafeERC20 for IERC20;
 
+  /// @inheritdoc	IBondAccounting
   function bond(uint256 user, uint256 amount)
     external
     override
@@ -33,6 +34,7 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
     _s.bonds[user].push(Bond(BondState.Active, amount, shares, _time()));
   }
 
+  /// @inheritdoc	IBondAccounting
   function exit(uint256 user, uint256 index)
     external
     override

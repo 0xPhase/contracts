@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
-import {CashV1Storage} from "../ICash.sol";
+import {ICash, CashV1Storage} from "../ICash.sol";
 
 contract CashV1 is CashV1Storage {
+  /// @inheritdoc	ICash
   function snapshot() external override onlyRole(SNAPSHOT_ROLE) {
     _snapshot();
   }
 
+  /// @inheritdoc	ICash
   function mintManager(address to, uint256 amount)
     external
     override
@@ -16,6 +18,7 @@ contract CashV1 is CashV1Storage {
     _mint(to, amount);
   }
 
+  /// @inheritdoc	ICash
   function burnManager(address from, uint256 amount)
     external
     override

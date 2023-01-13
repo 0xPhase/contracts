@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
 import {ProxyOwnable} from "../proxy/utils/ProxyOwnable.sol";

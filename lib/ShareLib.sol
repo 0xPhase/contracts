@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.17;
 
 /// @title Share Math Library
 /// @author 0xPhase
@@ -15,6 +15,8 @@ library ShareLib {
     uint256 _totalShares,
     uint256 _balance
   ) internal pure returns (uint256 _amount) {
+    if (_totalShares == 0) return 0;
+
     _amount = (_shares * _balance) / _totalShares;
   }
 
@@ -28,6 +30,8 @@ library ShareLib {
     uint256 _totalShares,
     uint256 _balance
   ) internal pure returns (uint256 _shares) {
+    if (_balance == 0) return 0;
+
     return (_amount * _totalShares) / _balance;
   }
 }
