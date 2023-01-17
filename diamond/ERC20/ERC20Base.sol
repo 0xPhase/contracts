@@ -222,35 +222,64 @@ abstract contract ERC20Base {
     uint256 amount // solhint-disable-next-line no-empty-blocks
   ) internal virtual {}
 
+  /**
+   * @dev Returns the name of the token.
+   */
   function _name() internal view virtual returns (string memory) {
     return _erc20s().name;
   }
 
+  /**
+   * @dev Returns the symbol of the token, usually a shorter version of the
+   * name.
+   */
   function _symbol() internal view virtual returns (string memory) {
     return _erc20s().symbol;
   }
 
+  /**
+   * @dev Returns the number of decimals used to get its user representation.
+   * For example, if `decimals` equals `2`, a balance of `505` tokens should
+   * be displayed to a user as `5.05` (`505 / 10 ** 2`).
+   *
+   * Tokens usually opt for a value of 18, imitating the relationship between
+   * Ether and Wei. This is the value {ERC20} uses, unless this function is
+   * overridden;
+   *
+   * NOTE: This information is only used for _display_ purposes: it in
+   * no way affects any of the arithmetic of the contract, including
+   * {IERC20-balanceOf} and {IERC20-transfer}.
+   */
   function _decimals() internal view virtual returns (uint8) {
     return 18;
   }
 
+  /**
+   * @dev See {IERC20-totalSupply}.
+   */
   function _totalSupply() internal view virtual returns (uint256) {
     return _erc20s().totalSupply;
   }
 
+  /**
+   * @dev See {IERC20-balanceOf}.
+   */
   function _balanceOf(address account) internal view virtual returns (uint256) {
     return _erc20s().balances[account];
   }
 
-  function _allowance(address owner, address spender)
-    internal
-    view
-    virtual
-    returns (uint256)
-  {
+  /**
+   * @dev See {IERC20-allowance}.
+   */
+  function _allowance(
+    address owner,
+    address spender
+  ) internal view virtual returns (uint256) {
     return _erc20s().allowances[owner][spender];
   }
 
+  /// @notice Returns the ERC20 storage pointer
+  /// @return s The ERC20 storage pointer
   function _erc20s() internal pure returns (ERC20Storage storage s) {
     bytes32 slot = _ERC20_STORAGE_SLOT;
 

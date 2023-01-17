@@ -31,7 +31,9 @@ contract PSMV1 is PSMV1Storage {
 
     require(fee > 0, "PSMV1: Fee cannot round down to 0");
 
-    cash.mintManager(msg.sender, fullAmount - fee);
+    uint256 userAmount = fullAmount - fee;
+
+    cash.mintManager(msg.sender, userAmount);
     cash.mintManager(bondAddress, fee);
 
     underlying.safeIncreaseAllowance(address(aavePool), amount);
@@ -40,6 +42,8 @@ contract PSMV1 is PSMV1Storage {
 
     totalTraded += fullAmount;
     totalFees += fee;
+
+    emit CashBought(msg.sender, fee, userAmount, fullAmount);
   }
 
   function sellCash(uint256 amount) external mintYield {
@@ -51,13 +55,16 @@ contract PSMV1 is PSMV1Storage {
     require(fee > 0, "PSMV1: Fee cannot round down to 0");
 
     uint256 fullFee = MathLib.scaleAmount(fee, _underlyingDecimals, 18);
+    uint256 fullUserAmount = fullAmount - fullFee;
 
     cash.burnManager(msg.sender, fullAmount);
     cash.mintManager(bondAddress, fullFee);
     aavePool.withdraw(address(underlying), amount - fee, msg.sender);
 
     totalTraded += fullAmount;
-    totalFees += fee;
+    totalFees += fullFee;
+
+    emit CashSold(msg.sender, fee, fullAmount, fullUserAmount);
   }
 
   function setBuyFee(uint256 fee) external onlyRole(MANAGER_ROLE) {

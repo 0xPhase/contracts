@@ -13,7 +13,7 @@ abstract contract ClockBase {
     _;
   }
 
-  /// @notice Updates the  time
+  /// @notice Updates the time
   function _updateTime() internal {
     ClockStorage storage data = _storage();
 

@@ -16,24 +16,51 @@ abstract contract EIP712Upgradeable is Initializable {
 
   /* solhint-enable var-name-mixedcase */
 
+  /**
+   * @dev Initializes the domain separator and parameter caches.
+   *
+   * The meaning of `name` and `version` is specified in
+   * https://eips.ethereum.org/EIPS/eip-712#definition-of-domainseparator[EIP 712]:
+   *
+   * - `name`: the user readable name of the signing domain, i.e. the name of the DApp or the protocol.
+   * - `version`: the current major version of the signing domain.
+   *
+   * NOTE: These parameters cannot be changed except through a xref:learn::upgrading-smart-contracts.adoc[smart
+   * contract upgrade].
+   */
   // solhint-disable-next-line func-name-mixedcase
-  function __EIP712_init(string memory name, string memory version)
-    internal
-    onlyInitializing
-  {
+  function __EIP712_init(
+    string memory name,
+    string memory version
+  ) internal onlyInitializing {
     _HASHED_NAME = keccak256(bytes(name));
     _HASHED_VERSION = keccak256(bytes(version));
   }
 
-  function _hashTypedDataV4(bytes32 structHash)
-    internal
-    view
-    virtual
-    returns (bytes32)
-  {
+  /**
+   * @dev Given an already https://eips.ethereum.org/EIPS/eip-712#definition-of-hashstruct[hashed struct], this
+   * function returns the hash of the fully encoded EIP712 message for this domain.
+   *
+   * This hash can be used together with {ECDSA-recover} to obtain the signer of a message. For example:
+   *
+   * ```solidity
+   * bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(
+   *     keccak256("Mail(address to,string contents)"),
+   *     mailTo,
+   *     keccak256(bytes(mailContents))
+   * )));
+   * address signer = ECDSA.recover(digest, signature);
+   * ```
+   */
+  function _hashTypedDataV4(
+    bytes32 structHash
+  ) internal view virtual returns (bytes32) {
     return _toTypedDataHash(_domainSeparatorV4(), structHash);
   }
 
+  /**
+   * @dev Returns the domain separator for the current chain.
+   */
   function _domainSeparatorV4() internal view returns (bytes32) {
     return
       _buildDomainSeparator(
@@ -43,21 +70,32 @@ abstract contract EIP712Upgradeable is Initializable {
       );
   }
 
+  /**
+   * @dev The hash of the name parameter for the EIP712 domain.
+   *
+   * NOTE: This function reads from storage by default, but can be redefined to return a constant value if gas costs
+   * are a concern.
+   */
   // solhint-disable-next-line func-name-mixedcase
   function _EIP712NameHash() internal view virtual returns (bytes32) {
     return _HASHED_NAME;
   }
 
+  /**
+   * @dev The hash of the version parameter for the EIP712 domain.
+   *
+   * NOTE: This function reads from storage by default, but can be redefined to return a constant value if gas costs
+   * are a concern.
+   */
   // solhint-disable-next-line func-name-mixedcase
   function _EIP712VersionHash() internal view virtual returns (bytes32) {
     return _HASHED_VERSION;
   }
 
-  function _toTypedDataHash(bytes32 domainSeparator, bytes32 structHash)
-    internal
-    pure
-    returns (bytes32)
-  {
+  function _toTypedDataHash(
+    bytes32 domainSeparator,
+    bytes32 structHash
+  ) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
   }
 

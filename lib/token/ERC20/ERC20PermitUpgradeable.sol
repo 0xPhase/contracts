@@ -21,11 +21,17 @@ abstract contract ERC20PermitUpgradeable is
   bytes32 private _PERMIT_TYPEHASH;
   mapping(address => CountersUpgradeable.Counter) private _nonces;
 
+  /**
+   * @dev See {IERC20Permit-DOMAIN_SEPARATOR}.
+   */
   // solhint-disable-next-line func-name-mixedcase
   function DOMAIN_SEPARATOR() external view override returns (bytes32) {
     return _domainSeparatorV4();
   }
 
+  /**
+   * @dev See {IERC20Permit-permit}.
+   */
   function permit(
     address owner,
     address spender,
@@ -55,16 +61,20 @@ abstract contract ERC20PermitUpgradeable is
     _approve(owner, spender, value);
   }
 
-  function nonces(address owner)
-    public
-    view
-    virtual
-    override
-    returns (uint256)
-  {
+  /**
+   * @dev See {IERC20Permit-nonces}.
+   */
+  function nonces(
+    address owner
+  ) public view virtual override returns (uint256) {
     return _nonces[owner].current();
   }
 
+  /**
+   * @dev Initializes the {EIP712} domain separator using the `name` parameter, and setting `version` to `"1"`.
+   *
+   * It's a good idea to use the same `name` that is defined as the ERC20 token name.
+   */
   // solhint-disable-next-line func-name-mixedcase
   function __ERC20Permit_init(string memory name) internal onlyInitializing {
     __EIP712_init(name, "1");
@@ -72,15 +82,19 @@ abstract contract ERC20PermitUpgradeable is
   }
 
   // solhint-disable-next-line func-name-mixedcase
-  function __ERC20Permit_init_unchained(string memory)
-    internal
-    onlyInitializing
-  {
+  function __ERC20Permit_init_unchained(
+    string memory
+  ) internal onlyInitializing {
     _PERMIT_TYPEHASH = keccak256(
       "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
     );
   }
 
+  /**
+   * @dev "Consume a nonce": return the current value and increment.
+   *
+   * _Available since v4.1._
+   */
   function _useNonce(address owner) internal virtual returns (uint256 current) {
     CountersUpgradeable.Counter storage nonce = _nonces[owner];
     current = nonce.current();

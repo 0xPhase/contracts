@@ -1,21 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {TestUSDC} from "../../test/TestUSDC.sol";
-import {BaseYield} from "../base/BaseYield.sol";
-import {IVault} from "../../vault/IVault.sol";
-import {Clock} from "../../misc/Clock.sol";
-import {IDB} from "../../db/IDB.sol";
+import {BaseYield} from "../yield/base/BaseYield.sol";
+import {IVault} from "../vault/IVault.sol";
+import {TestUSDC} from "./TestUSDC.sol";
+import {Clock} from "../misc/Clock.sol";
+import {IDB} from "../db/IDB.sol";
 
 contract MockYield is BaseYield, Clock {
   uint256 public yieldRate;
   uint256 public lastTick;
 
-  constructor(
-    IDB db_,
-    IVault vault_,
-    uint256 yieldRate_
-  ) {
+  constructor(IDB db_, IVault vault_, uint256 yieldRate_) {
     _initializeSimpleYield(db_, vault_);
     _updateTime();
 

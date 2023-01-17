@@ -12,12 +12,19 @@ contract MasterOracle is Ownable, Multicall, IOracle {
 
   EnumerableMap.AddressToUintMap private _assets;
 
+  /// @notice Event emmited when an asset oracle is set
+  /// @param asset The asset address
+  /// @param newOracle The oracle address
   event AssetSet(address indexed asset, address indexed newOracle);
 
+  /// @notice Constructor for the MasterOracle contract
   constructor(address owner_) {
     _transferOwnership(owner_);
   }
 
+  /// @notice Sets the oracle for an address, address(0) removes the oracle and the asset
+  /// @param asset The asset address
+  /// @param newOracle The oracle address
   function setAsset(address asset, address newOracle) external onlyOwner {
     if (newOracle == address(0)) {
       _assets.remove(asset);
@@ -32,12 +39,10 @@ contract MasterOracle is Ownable, Multicall, IOracle {
     emit AssetSet(asset, newOracle);
   }
 
-  function getPrice(address asset)
-    external
-    view
-    override
-    returns (uint256 price)
-  {
+  /// @inheritdoc	IOracle
+  function getPrice(
+    address asset
+  ) external view override returns (uint256 price) {
     address oracleAddress = oracle(asset);
 
     require(
@@ -48,6 +53,8 @@ contract MasterOracle is Ownable, Multicall, IOracle {
     return IOracle(oracleAddress).getPrice(asset);
   }
 
+  /// @notice Returns all the assets in the master oracle
+  /// @return results The list of asset addresses
   function assets() external view returns (address[] memory results) {
     uint256 length = _assets.length();
 
@@ -59,6 +66,9 @@ contract MasterOracle is Ownable, Multicall, IOracle {
     }
   }
 
+  /// @notice Returns the oracle for the address, address(0) if no oracle found
+  /// @param asset The asset address
+  /// @return The oracle address
   function oracle(address asset) public view returns (address) {
     if (!_assets.contains(asset)) return address(0);
 

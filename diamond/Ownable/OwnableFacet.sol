@@ -5,6 +5,7 @@ import {OwnableStorage, IOwnable} from "./IOwnable.sol";
 import {OwnableBase} from "./OwnableBase.sol";
 
 contract OwnableFacet is OwnableBase, IOwnable {
+  /// @inheritdoc	IOwnable
   function transferOwnership(address newOwner) public virtual onlyOwner {
     require(
       newOwner != address(0),
@@ -14,10 +15,12 @@ contract OwnableFacet is OwnableBase, IOwnable {
     _transferOwnership(newOwner);
   }
 
+  /// @inheritdoc	IOwnable
   function renounceOwnership() public virtual onlyOwner {
     _transferOwnership(address(0));
   }
 
+  /// @inheritdoc	IOwnable
   function owner() public view virtual returns (address) {
     return _owner();
   }

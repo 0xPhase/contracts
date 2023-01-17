@@ -26,10 +26,16 @@ abstract contract ERC20VotesUpgradeable is
   mapping(address => Checkpoint[]) private _checkpoints;
   Checkpoint[] private _totalSupplyCheckpoints;
 
+  /**
+   * @dev Delegate votes from the sender to `delegatee`.
+   */
   function delegate(address delegatee) public virtual override {
     _delegate(_msgSender(), delegatee);
   }
 
+  /**
+   * @dev Delegates votes from signer to `delegatee`
+   */
   function delegateBySig(
     address delegator,
     address delegatee,
@@ -51,63 +57,70 @@ abstract contract ERC20VotesUpgradeable is
     _delegate(delegator, delegatee);
   }
 
-  function checkpoints(address account, uint32 pos)
-    public
-    view
-    virtual
-    returns (Checkpoint memory)
-  {
+  /**
+   * @dev Get the `pos`-th checkpoint for `account`.
+   */
+  function checkpoints(
+    address account,
+    uint32 pos
+  ) public view virtual returns (Checkpoint memory) {
     return _checkpoints[account][pos];
   }
 
-  function numCheckpoints(address account)
-    public
-    view
-    virtual
-    returns (uint32)
-  {
+  /**
+   * @dev Get number of checkpoints for `account`.
+   */
+  function numCheckpoints(
+    address account
+  ) public view virtual returns (uint32) {
     return SafeCastUpgradeable.toUint32(_checkpoints[account].length);
   }
 
-  function delegates(address account)
-    public
-    view
-    virtual
-    override
-    returns (address)
-  {
+  /**
+   * @dev Get the address `account` is currently delegating to.
+   */
+  function delegates(
+    address account
+  ) public view virtual override returns (address) {
     return _delegates[account];
   }
 
-  function getVotes(address account)
-    public
-    view
-    virtual
-    override
-    returns (uint256)
-  {
+  /**
+   * @dev Gets the current votes balance for `account`
+   */
+  function getVotes(
+    address account
+  ) public view virtual override returns (uint256) {
     uint256 pos = _checkpoints[account].length;
     return pos == 0 ? 0 : _checkpoints[account][pos - 1].votes;
   }
 
-  function getPastVotes(address account, uint256 blockNumber)
-    public
-    view
-    virtual
-    override
-    returns (uint256)
-  {
+  /**
+   * @dev Retrieve the number of votes for `account` at the end of `blockNumber`.
+   *
+   * Requirements:
+   *
+   * - `blockNumber` must have been already mined
+   */
+  function getPastVotes(
+    address account,
+    uint256 blockNumber
+  ) public view virtual override returns (uint256) {
     require(blockNumber < block.number, "ERC20Votes: block not yet mined");
     return _checkpointsLookup(_checkpoints[account], blockNumber);
   }
 
-  function getPastTotalSupply(uint256 blockNumber)
-    public
-    view
-    virtual
-    override
-    returns (uint256)
-  {
+  /**
+   * @dev Retrieve the `totalSupply` at the end of `blockNumber`. Note, this value is the sum of all balances.
+   * It is NOT the sum of all the delegated votes!
+   *
+   * Requirements:
+   *
+   * - `blockNumber` must have been already mined
+   */
+  function getPastTotalSupply(
+    uint256 blockNumber
+  ) public view virtual override returns (uint256) {
     require(blockNumber < block.number, "ERC20Votes: block not yet mined");
     return _checkpointsLookup(_totalSupplyCheckpoints, blockNumber);
   }
@@ -118,8 +131,12 @@ abstract contract ERC20VotesUpgradeable is
   // solhint-disable-next-line func-name-mixedcase, no-empty-blocks
   function __ERC20Votes_init_unchained() internal onlyInitializing {}
 
+  /**
+   * @dev Snapshots the totalSupply after it has been increased.
+   */
   function _mint(address account, uint256 amount) internal virtual override {
     super._mint(account, amount);
+
     require(
       totalSupply() <= _maxSupply(),
       "ERC20Votes: total supply risks overflowing votes"
@@ -128,12 +145,20 @@ abstract contract ERC20VotesUpgradeable is
     _writeCheckpoint(_totalSupplyCheckpoints, _add, amount);
   }
 
+  /**
+   * @dev Snapshots the totalSupply after it has been decreased.
+   */
   function _burn(address account, uint256 amount) internal virtual override {
     super._burn(account, amount);
 
     _writeCheckpoint(_totalSupplyCheckpoints, _subtract, amount);
   }
 
+  /**
+   * @dev Move voting power when tokens are transferred.
+   *
+   * Emits a {IVotes-DelegateVotesChanged} event.
+   */
   function _afterTokenTransfer(
     address from,
     address to,
@@ -144,6 +169,11 @@ abstract contract ERC20VotesUpgradeable is
     _moveVotingPower(delegates(from), delegates(to), amount);
   }
 
+  /**
+   * @dev Change delegation for `delegator` to `delegatee`.
+   *
+   * Emits events {IVotes-DelegateChanged} and {IVotes-DelegateVotesChanged}.
+   */
   function _delegate(address delegator, address delegatee) internal virtual {
     address currentDelegate = delegates(delegator);
     uint256 delegatorBalance = balanceOf(delegator);
@@ -154,15 +184,14 @@ abstract contract ERC20VotesUpgradeable is
     _moveVotingPower(currentDelegate, delegatee, delegatorBalance);
   }
 
+  /**
+   * @dev Maximum token supply. Defaults to `type(uint224).max` (2^224^ - 1).
+   */
   function _maxSupply() internal view virtual returns (uint224) {
     return type(uint224).max;
   }
 
-  function _moveVotingPower(
-    address src,
-    address dst,
-    uint256 amount
-  ) private {
+  function _moveVotingPower(address src, address dst, uint256 amount) private {
     if (src != dst && amount > 0) {
       if (src != address(0)) {
         (uint256 oldWeight, uint256 newWeight) = _writeCheckpoint(
@@ -205,11 +234,13 @@ abstract contract ERC20VotesUpgradeable is
     }
   }
 
-  function _checkpointsLookup(Checkpoint[] storage ckpts, uint256 blockNumber)
-    private
-    view
-    returns (uint256)
-  {
+  /**
+   * @dev Lookup a value in a list of (sorted) checkpoints.
+   */
+  function _checkpointsLookup(
+    Checkpoint[] storage ckpts,
+    uint256 blockNumber
+  ) private view returns (uint256) {
     // We run a binary search to look for the earliest checkpoint taken after `blockNumber`.
     //
     // During the loop, the index of the wanted checkpoint remains in the range [low-1, high).

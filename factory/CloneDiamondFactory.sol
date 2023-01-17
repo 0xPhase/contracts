@@ -5,11 +5,10 @@ import {CloneDiamond} from "../diamond/Clone/CloneDiamond.sol";
 import {IFactory} from "./IFactory.sol";
 
 contract CloneDiamondFactory is IFactory {
-  function create(bytes memory constructorData)
-    external
-    override
-    returns (address created)
-  {
+  /// @inheritdoc	IFactory
+  function create(
+    bytes memory constructorData
+  ) external override returns (address created) {
     (
       address owner_,
       address target_,

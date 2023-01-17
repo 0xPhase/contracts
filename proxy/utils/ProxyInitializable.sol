@@ -3,22 +3,25 @@ pragma solidity ^0.8.17;
 
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
-import {StringLib} from "../../lib/StringLib.sol";
-
 abstract contract ProxyInitializable {
   using StorageSlot for bytes32;
-  using StringLib for string;
 
+  /// @notice Event emitted when a version is initalized
+  /// @param version The initialized version
   event VersionInitialized(string indexed version);
 
+  /// @notice Runs function if contract has been initialized
+  /// @param version The version to initalize
   modifier initialize(string memory version) {
     StorageSlot.BooleanSlot storage disabledSlot = _disabledSlot()
       .getBooleanSlot();
 
+    require(!disabledSlot.value, "ProxyInitializable: Initialization disabled");
+
     StorageSlot.BooleanSlot storage versionSlot = _versionSlot(version)
       .getBooleanSlot();
 
-    if (!versionSlot.value && !disabledSlot.value) {
+    if (!disabledSlot.value) {
       _;
 
       emit VersionInitialized(version);
@@ -26,6 +29,7 @@ abstract contract ProxyInitializable {
     }
   }
 
+  /// @notice Internal function to disable all initializations
   function _disableInitialization() internal {
     StorageSlot.BooleanSlot storage disabledSlot = _disabledSlot()
       .getBooleanSlot();
@@ -33,16 +37,21 @@ abstract contract ProxyInitializable {
     disabledSlot.value = true;
   }
 
+  /// @notice Returns the slot for the disabled boolean
+  /// @return The disabled boolean
   function _disabledSlot() internal pure returns (bytes32) {
     return bytes32(uint256(keccak256("proxy.initializable.disabled")) - 1);
   }
 
+  /// @notice Returns the slot for the version initialized boolean
+  /// @param version The version
+  /// @return The version initialized boolean
   function _versionSlot(string memory version) internal pure returns (bytes32) {
     return
       bytes32(
         uint256(
           keccak256(
-            bytes(string("proxy.initializable.initialized.").append(version))
+            bytes(string.concat("proxy.initializable.initialized.", version))
           )
         ) - 1
       );

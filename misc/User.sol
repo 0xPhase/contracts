@@ -4,11 +4,10 @@ pragma solidity ^0.8.17;
 import {CallLib} from "../lib/CallLib.sol";
 
 contract User {
-  function batchCall(bytes calldata data)
-    external
-    payable
-    returns (bytes memory result)
-  {
+  /// @notice only used for tests!
+  function batchCall(
+    bytes calldata data
+  ) external payable returns (bytes memory result) {
     uint256 offset = 0;
 
     while (offset < data.length) {
@@ -37,6 +36,7 @@ contract User {
     }
   }
 
+  /// @notice only used for tests!
   function onERC721Received(
     address,
     address,

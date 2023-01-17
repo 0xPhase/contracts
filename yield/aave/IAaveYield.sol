@@ -9,21 +9,20 @@ import {IDB} from "../../db/IDB.sol";
 
 import {IAavePool} from "../../interfaces/aave/IAavePool.sol";
 
-interface IAaveYield {}
-
-abstract contract AaveYieldV1Storage is
-  ProxyInitializable,
-  BaseYield,
-  IAaveYield
-{
+abstract contract AaveYieldV1Storage is ProxyInitializable, BaseYield {
   IAavePool public aavePool;
   IERC20 public aToken;
   IERC20 public underlying;
 
+  /// @notice Disables initialization on the target contract
   constructor() {
     _disableInitialization();
   }
 
+  /// @notice Initializes the aave yield contract on version 1
+  /// @param db_ The DB contract address
+  /// @param vault_ The Vault contract address
+  /// @param aavePool_ The AavePool contract address
   function initializeAaveYieldV1(
     IDB db_,
     IVault vault_,

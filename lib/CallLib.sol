@@ -1,18 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {StringLib} from "./StringLib.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 library CallLib {
-  using StringLib for string;
-
-  function callFunc(address target, bytes memory data)
-    internal
-    returns (bytes memory)
-  {
+  /// @notice Calls an external function without value
+  /// @param target The target contract
+  /// @param data The calldata
+  /// @return The result of the call
+  function callFunc(
+    address target,
+    bytes memory data
+  ) internal returns (bytes memory) {
     return callFunc(target, data, 0);
   }
 
+  /// @notice Calls an external function with value
+  /// @param target The target contract
+  /// @param data The calldata
+  /// @param value The value sent with the call
+  /// @return The result of the call
   function callFunc(
     address target,
     bytes memory data,
@@ -25,18 +32,30 @@ library CallLib {
 
     // solhint-disable-next-line avoid-low-level-calls
     (bool success, bytes memory returndata) = target.call{value: value}(data);
+
     return verifyCallResult(success, returndata, target, "call");
   }
 
-  function delegateCallFunc(address target, bytes memory data)
-    internal
-    returns (bytes memory)
-  {
+  /// @notice Calls an external function in current storage
+  /// @param target The target contract
+  /// @param data The calldata
+  /// @return The result of the call
+  function delegateCallFunc(
+    address target,
+    bytes memory data
+  ) internal returns (bytes memory) {
     // solhint-disable-next-line avoid-low-level-calls
     (bool success, bytes memory returndata) = target.delegatecall(data);
+
     return verifyCallResult(success, returndata, target, "delegateCall");
   }
 
+  /// @notice Verifies if a contract call succeeded
+  /// @param success If the call itself succeeded
+  /// @param result The result of the call
+  /// @param target The called contract
+  /// @param method The method type, call or delegateCall
+  /// @return The result of the call
   function verifyCallResult(
     bool success,
     bytes memory result,
@@ -49,10 +68,12 @@ library CallLib {
 
     if (result.length == 0)
       revert(
-        string("CallLib: Function ")
-          .append(method)
-          .append(" reverted silently for ")
-          .append(StringLib.toHex(bytes32(uint256(uint160(target)) << 96)))
+        string.concat(
+          "CallLib: Function ",
+          method,
+          " reverted silently for ",
+          Strings.toHexString(target)
+        )
       );
 
     // solhint-disable-next-line no-inline-assembly

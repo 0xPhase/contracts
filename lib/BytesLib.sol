@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {StringLib} from "./StringLib.sol";
-
 library BytesLib {
-  using StringLib for string;
-
+  /// @notice Slices the byte array
+  /// @param _bytes The byte array
+  /// @param _start The start of the slice
+  /// @param _length The length of the slice
+  /// @return The slice
   function slice(
     bytes memory _bytes,
     uint256 _start,
@@ -16,6 +17,7 @@ library BytesLib {
 
     bytes memory tempBytes;
 
+    // solhint-disable-next-line no-inline-assembly
     assembly {
       switch iszero(_length)
       case 0 {

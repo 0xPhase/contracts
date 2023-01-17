@@ -23,16 +23,17 @@ abstract contract BaseYield is AccessControl, IYield {
 
   uint256 internal _totalShares;
 
+  /// @notice Runs the function only if caller is the vault
   modifier onlyVault() {
     require(msg.sender == address(vault), "BaseYield: Caller is not vault");
     _;
   }
 
-  function receiveDeposit(uint256 user, uint256 amount)
-    external
-    override
-    onlyVault
-  {
+  /// @inheritdoc	IYield
+  function receiveDeposit(
+    uint256 user,
+    uint256 amount
+  ) external override onlyVault {
     _preDeposit(user, amount);
 
     asset.safeTransferFrom(address(vault), address(this), amount);
@@ -49,12 +50,11 @@ abstract contract BaseYield is AccessControl, IYield {
     emit Deposit(user, amount, share);
   }
 
-  function receiveWithdraw(uint256 user, uint256 amount)
-    external
-    override
-    onlyVault
-    returns (uint256)
-  {
+  /// @inheritdoc	IYield
+  function receiveWithdraw(
+    uint256 user,
+    uint256 amount
+  ) external override onlyVault returns (uint256) {
     require(_totalShares > 0, "BaseYield: No shares exist");
 
     _preWithdraw(user, amount);
@@ -79,12 +79,10 @@ abstract contract BaseYield is AccessControl, IYield {
     return amount;
   }
 
-  function receiveFullWithdraw(uint256 user)
-    external
-    override
-    onlyVault
-    returns (uint256)
-  {
+  /// @inheritdoc	IYield
+  function receiveFullWithdraw(
+    uint256 user
+  ) external override onlyVault returns (uint256) {
     uint256 share = shares[user];
 
     if (share == 0) return 0;
@@ -111,12 +109,17 @@ abstract contract BaseYield is AccessControl, IYield {
     return amount;
   }
 
+  /// @inheritdoc	IYield
   function balance(uint256 user) external view virtual returns (uint256) {
     return ShareLib.calculateAmount(shares[user], _totalShares, totalBalance());
   }
 
+  /// @inheritdoc	IYield
   function totalBalance() public view virtual returns (uint256);
 
+  /// @notice Initializer for the BaseYield contract
+  /// @param db_ The DB contract address
+  /// @param vault_ The Vault contract address
   function _initializeSimpleYield(IDB db_, IVault vault_) internal {
     _initializeDB(db_);
 
@@ -124,21 +127,35 @@ abstract contract BaseYield is AccessControl, IYield {
     asset = vault_.asset();
   }
 
-  // solhint-disable-next-line no-empty-blocks
+  // solhint-disable no-empty-blocks
+  /// @notice Ran before the deposit is made
+  /// @param user The user id
+  /// @param amount The deposit amount
   function _preDeposit(uint256 user, uint256 amount) internal virtual {}
 
-  // solhint-disable-next-line no-empty-blocks
+  /// @notice Ran before the withdraw is made
+  /// @param user The user id
+  /// @param amount The withdraw amount
   function _preWithdraw(uint256 user, uint256 amount) internal virtual {}
 
+  /// @notice Ran after the deposit is made
+  /// @param user The user id
+  /// @param amount The deposit amount
+  /// @param share The deposit shares
   function _onDeposit(
     uint256 user,
     uint256 amount,
-    uint256 share // solhint-disable-next-line no-empty-blocks
+    uint256 share
   ) internal virtual {}
 
+  /// @notice Ran after the deposit is made
+  /// @param user The user id
+  /// @param amount The withdraw amount
+  /// @param share The withdraw shares
   function _onWithdraw(
     uint256 user,
     uint256 amount,
-    uint256 share // solhint-disable-next-line no-empty-blocks
+    uint256 share
   ) internal virtual {}
+  // solhint-enable no-empty-blocks
 }

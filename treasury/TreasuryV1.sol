@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {TreasuryStorageV1} from "./ITreasury.sol";
+import {ITreasury, TreasuryStorageV1} from "./ITreasury.sol";
 
 contract TreasuryV1 is TreasuryStorageV1 {
   using SafeERC20 for IERC20;
@@ -15,6 +15,7 @@ contract TreasuryV1 is TreasuryStorageV1 {
   // solhint-disable-next-line no-empty-blocks
   receive() external payable {}
 
+  /// @inheritdoc	ITreasury
   function donate(
     string memory cause,
     address token,
@@ -23,6 +24,7 @@ contract TreasuryV1 is TreasuryStorageV1 {
     donate(keccak256(bytes(cause)), token, amount);
   }
 
+  /// @inheritdoc	ITreasury
   function spend(
     string memory cause,
     address token,
@@ -32,6 +34,7 @@ contract TreasuryV1 is TreasuryStorageV1 {
     spend(keccak256(bytes(cause)), token, amount, to);
   }
 
+  /// @inheritdoc	ITreasury
   function increaseUnsafe(
     bytes32 cause,
     address token,
@@ -40,10 +43,13 @@ contract TreasuryV1 is TreasuryStorageV1 {
     _changeToken(cause, token, amount, true);
   }
 
-  function donateExtra(bytes32 cause, address token)
-    external
-    onlyRole(MANAGER_ROLE)
-  {
+  /// @notice Donates any extra tokens in the current address to the cause
+  /// @param cause The cause to donate to
+  /// @param token The donated token address (ETH_ADDRESS for ETH)
+  function donateExtra(
+    bytes32 cause,
+    address token
+  ) external onlyRole(MANAGER_ROLE) {
     uint256 balance = token == ETH_ADDRESS
       ? address(this).balance
       : IERC20(token).balanceOf(address(this));
@@ -57,37 +63,34 @@ contract TreasuryV1 is TreasuryStorageV1 {
     emit Donated(cause, token, difference);
   }
 
-  function tokenBalance(address token)
-    external
-    view
-    override
-    returns (uint256)
-  {
+  /// @inheritdoc	ITreasury
+  function tokenBalance(
+    address token
+  ) external view override returns (uint256) {
     return _globalCause.token[token].balance;
   }
 
-  function tokenBalance(string memory cause, address token)
-    external
-    view
-    override
-    returns (uint256)
-  {
+  /// @inheritdoc	ITreasury
+  function tokenBalance(
+    string memory cause,
+    address token
+  ) external view override returns (uint256) {
     return tokenBalance(keccak256(bytes(cause)), token);
   }
 
+  /// @inheritdoc	ITreasury
   function tokens() external view override returns (address[] memory) {
     return _globalCause.tokens;
   }
 
-  function tokens(string memory cause)
-    external
-    view
-    override
-    returns (address[] memory)
-  {
+  /// @inheritdoc	ITreasury
+  function tokens(
+    string memory cause
+  ) external view override returns (address[] memory) {
     return tokens(keccak256(bytes(cause)));
   }
 
+  /// @inheritdoc	ITreasury
   function donate(
     bytes32 cause,
     address token,
@@ -114,6 +117,7 @@ contract TreasuryV1 is TreasuryStorageV1 {
     emit Donated(cause, token, increase);
   }
 
+  /// @inheritdoc	ITreasury
   function spend(
     bytes32 cause,
     address token,
@@ -136,23 +140,21 @@ contract TreasuryV1 is TreasuryStorageV1 {
     emit Spent(cause, token, to, amount);
   }
 
-  function tokenBalance(bytes32 cause, address token)
-    public
-    view
-    override
-    returns (uint256)
-  {
+  /// @inheritdoc	ITreasury
+  function tokenBalance(
+    bytes32 cause,
+    address token
+  ) public view override returns (uint256) {
     return _cause[cause].token[token].balance;
   }
 
-  function tokens(bytes32 cause)
-    public
-    view
-    override
-    returns (address[] memory)
-  {
+  /// @inheritdoc	ITreasury
+  function tokens(
+    bytes32 cause
+  ) public view override returns (address[] memory) {
     return _cause[cause].tokens;
   }
+
 
   function _changeToken(
     bytes32 cause,
@@ -163,9 +165,6 @@ contract TreasuryV1 is TreasuryStorageV1 {
     TokenInfo storage token = _cause[cause].token[tokenAddress];
     TokenInfo storage global = _globalCause.token[tokenAddress];
 
-    _checkSet(token, _cause[cause], tokenAddress);
-    _checkSet(global, _globalCause, tokenAddress);
-
     if (adding) {
       token.balance += amount;
       global.balance += amount;
@@ -173,6 +172,9 @@ contract TreasuryV1 is TreasuryStorageV1 {
       token.balance -= amount;
       global.balance -= amount;
     }
+
+    _checkSet(token, _cause[cause], tokenAddress);
+    _checkSet(global, _globalCause, tokenAddress);
   }
 
   function _checkSet(
@@ -180,7 +182,7 @@ contract TreasuryV1 is TreasuryStorageV1 {
     Cause storage cause,
     address tokenAddress
   ) internal {
-    if (token.balance == 0 && !token.set) {
+    if (token.balance == 0 && token.set) {
       token.set = true;
       cause.tokens.push(tokenAddress);
     }

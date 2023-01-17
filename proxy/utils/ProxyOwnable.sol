@@ -11,6 +11,9 @@ abstract contract ProxyOwnable is ProxyInitializable {
   bytes32 internal constant _OWNER_SLOT =
     bytes32(uint256(keccak256("proxy.ownable.owner")) - 1);
 
+  /// @notice Event emitted when the ownership is transferred
+  /// @param previousOwner The previous owner address
+  /// @param newOwner The new owner address
   event OwnershipTransferred(
     address indexed previousOwner,
     address indexed newOwner
@@ -64,10 +67,9 @@ abstract contract ProxyOwnable is ProxyInitializable {
   /**
    * @dev Initializes the contract setting the firstOwner as the initial owner.
    */
-  function _initializeOwnership(address firstOwner)
-    internal
-    initialize("owner")
-  {
+  function _initializeOwnership(
+    address firstOwner
+  ) internal initialize("owner") {
     _transferOwnership(firstOwner);
   }
 
