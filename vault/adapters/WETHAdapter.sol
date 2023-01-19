@@ -15,6 +15,7 @@ struct WETHAdapterData {
 contract WETHAdapter is VaultBase, IAdapter {
   using SafeERC20 for IERC20;
 
+  /// @inheritdoc	IAdapter
   function deposit(
     uint256,
     uint256 amount,
@@ -37,6 +38,7 @@ contract WETHAdapter is VaultBase, IAdapter {
     }
   }
 
+  /// @inheritdoc	IAdapter
   function withdraw(
     uint256,
     uint256 amount,

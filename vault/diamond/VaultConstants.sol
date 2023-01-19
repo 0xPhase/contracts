@@ -2,6 +2,8 @@
 pragma solidity ^0.8.17;
 
 library VaultConstants {
+  bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+
   bytes32 public constant REBATE_CAUSE = keccak256("REBATE_CAUSE");
   bytes32 public constant PROTOCOL_CAUSE = keccak256("PROTOCOL_CAUSE");
 

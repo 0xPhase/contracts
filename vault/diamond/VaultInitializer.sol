@@ -17,6 +17,25 @@ import {VaultBase} from "./VaultBase.sol";
 import {IDB} from "../../db/IDB.sol";
 
 contract VaultInitializer is VaultBase, ProxyInitializable {
+  /// @notice Disables initialization on the target contract
+  constructor() {
+    _disableInitialization();
+  }
+
+  /// @notice Initializes the Vault contract on version v1
+  /// @param db_ The db contract
+  /// @param varStorage_ The var Ssorage contract
+  /// @param asset_ The asset token contract
+  /// @param priceOracle_ The price oracle contract
+  /// @param interest_ The interest contract
+  /// @param initialMaxMint_ The initial max mint
+  /// @param initialMaxCollateralRatio_ The initial max collateral ratio
+  /// @param initialBorrowFee_ The initial borrow fee
+  /// @param initialLiquidationFee_ The initial liquidation fee
+  /// @param initialHealthTargetMinimum_ The initial health target minimum
+  /// @param initialHealthTargetMaximum_ The initial health target maximum
+  /// @param adapter_ The optional adapter address
+  /// @param adapterData_ The optional adapter data
   function initializeVaultV1(
     IDB db_,
     Storage varStorage_,
@@ -59,7 +78,7 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
 
     _s.lastDebtUpdate = block.timestamp;
 
-    _grantRoleKey(_MANAGER_ROLE, keccak256("MANAGER"));
+    _grantRoleKey(VaultConstants.MANAGER_ROLE, keccak256("MANAGER"));
     _transferOwnership(managerAddress);
 
     emit PriceOracleSet(priceOracle_);
@@ -73,6 +92,8 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
     emit AdapterDataSet(adapterData_);
   }
 
+  /// @notice Initializes the target diamond to allow for cutting
+  /// @param owner The diamond owner
   function initializeVaultOwner(address owner) public initialize("owner") {
     _transferOwnership(owner);
     _disableInitialization();

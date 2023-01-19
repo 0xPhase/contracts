@@ -9,22 +9,25 @@ import {IVault} from "../../IVault.sol";
 contract FixedRateInterest is Ownable, IInterest {
   uint256 public fixedInterest;
 
+  /// @notice Constructor for the FixedRateInterest contract
+  /// @param owner_ The owner address
+  /// @param initialFixedInterest_ The initial fixed interest
   constructor(address owner_, uint256 initialFixedInterest_) {
     fixedInterest = initialFixedInterest_;
 
     _transferOwnership(owner_);
   }
 
+  /// @notice Sets the fixed interest
+  /// @param newInterest The new fixed interest
   function setFixedInterest(uint256 newInterest) external onlyOwner {
     fixedInterest = newInterest;
   }
 
-  function getInterest(IVault)
-    external
-    view
-    override
-    returns (uint256 interest)
-  {
+  /// @inheritdoc	IInterest
+  function getInterest(
+    IVault
+  ) external view override returns (uint256 interest) {
     interest = fixedInterest;
   }
 }

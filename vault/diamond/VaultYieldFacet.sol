@@ -13,6 +13,9 @@ contract VaultYieldFacet is VaultBase, IVaultYield {
   using EnumerableSet for EnumerableSet.AddressSet;
   using SafeERC20 for IERC20;
 
+  /// @notice Checks if yield source exists and possibly if it's enabled
+  /// @param yieldSource The yield source
+  /// @param allowDisabled If allows disabled sources
   modifier yieldCheck(address yieldSource, bool allowDisabled) {
     if (allowDisabled) {
       require(
@@ -29,6 +32,7 @@ contract VaultYieldFacet is VaultBase, IVaultYield {
     _;
   }
 
+  /// @inheritdoc	IVaultYield
   function depositYield(
     uint256 user,
     address yieldSource,
@@ -59,6 +63,7 @@ contract VaultYieldFacet is VaultBase, IVaultYield {
     _s.userYield[user].yieldSources.add(yieldSource);
   }
 
+  /// @inheritdoc	IVaultYield
   function withdrawYield(
     uint256 user,
     address yieldSource,
@@ -88,7 +93,11 @@ contract VaultYieldFacet is VaultBase, IVaultYield {
     }
   }
 
-  function withdrawFullYield(uint256 user, address yieldSource)
+  /// @inheritdoc	IVaultYield
+  function withdrawFullYield(
+    uint256 user,
+    address yieldSource
+  )
     external
     override
     yieldCheck(yieldSource, true)
@@ -109,7 +118,10 @@ contract VaultYieldFacet is VaultBase, IVaultYield {
     _s.userInfo[user].deposit += result;
   }
 
-  function withdrawEverythingYield(uint256 user)
+  /// @inheritdoc	IVaultYield
+  function withdrawEverythingYield(
+    uint256 user
+  )
     external
     override
     ownerCheck(user, msg.sender)

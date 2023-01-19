@@ -14,6 +14,7 @@ import {IAdapter} from "../IAdapter.sol";
 contract VaultAccountingFacet is VaultBase, IVaultAccounting {
   using SafeERC20 for IERC20;
 
+  /// @inheritdoc	IVaultAccounting
   function addCollateral(
     uint256 user,
     uint256 amount,
@@ -43,6 +44,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     emit CollateralAdded(user, amount);
   }
 
+  /// @inheritdoc	IVaultAccounting
   function removeCollateral(
     uint256 user,
     uint256 amount,
@@ -83,7 +85,11 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     emit CollateralRemoved(user, amount);
   }
 
-  function mintUSD(uint256 user, uint256 amount)
+  /// @inheritdoc	IVaultAccounting
+  function mintUSD(
+    uint256 user,
+    uint256 amount
+  )
     public
     override
     ownerCheck(user, msg.sender)
@@ -95,6 +101,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     mintUSD(user, amount, false);
   }
 
+  /// @inheritdoc	IVaultAccounting
   function mintUSD(
     uint256 user,
     uint256 amount,
@@ -151,7 +158,11 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     emit USDMinted(user, amount, fee);
   }
 
-  function repayUSD(uint256 user, uint256 shares)
+  /// @inheritdoc	IVaultAccounting
+  function repayUSD(
+    uint256 user,
+    uint256 shares
+  )
     public
     override
     ownerCheck(user, msg.sender)
@@ -163,6 +174,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     repayUSD(user, shares, false);
   }
 
+  /// @inheritdoc	IVaultAccounting
   function repayUSD(
     uint256 user,
     uint256 shares,

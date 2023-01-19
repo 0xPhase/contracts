@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import {VaultConstants} from "./VaultConstants.sol";
 import {IOracle} from "../../oracle/IOracle.sol";
 import {IVaultSetters} from "../IVault.sol";
 import {IInterest} from "../IInterest.sol";
@@ -11,7 +12,11 @@ import {VaultBase} from "./VaultBase.sol";
 contract VaultSettersFacet is VaultBase, IVaultSetters {
   using EnumerableSet for EnumerableSet.AddressSet;
 
-  function setHealthTarget(uint256 user, uint256 healthTarget)
+  /// @inheritdoc	IVaultSetters
+  function setHealthTarget(
+    uint256 user,
+    uint256 healthTarget
+  )
     external
     override
     ownerCheck(user, msg.sender)
@@ -34,77 +39,101 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
     emit HealthTargetSet(user, healthTarget);
   }
 
-  function setPriceOracle(IOracle newPriceOracle)
-    external
-    onlyRole(_DEFAULT_ADMIN_ROLE)
-  {
+  /// @notice Sets the price oracle contract
+  /// @param newPriceOracle The new price oracle contract
+  function setPriceOracle(
+    IOracle newPriceOracle
+  ) external onlyRole(_DEFAULT_ADMIN_ROLE) {
     _s.priceOracle = newPriceOracle;
 
     emit PriceOracleSet(newPriceOracle);
   }
 
-  function setInterest(IInterest newInterest)
-    external
-    updateDebt
-    onlyRole(_MANAGER_ROLE)
-  {
+  /// @notice Sets the interest contract
+  /// @param newInterest The new interest contract
+  function setInterest(
+    IInterest newInterest
+  ) external updateDebt onlyRole(VaultConstants.MANAGER_ROLE) {
     _s.interest = newInterest;
 
     emit InterestSet(newInterest);
   }
 
-  function setMaxCollateralRatio(uint256 newMaxCollateralRatio)
-    external
-    onlyRole(_MANAGER_ROLE)
-  {
+  /// @notice Sets the max collateral ratio
+  /// @param newMaxCollateralRatio The new max collateral ratio
+  function setMaxCollateralRatio(
+    uint256 newMaxCollateralRatio
+  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
     _s.maxCollateralRatio = newMaxCollateralRatio;
 
     emit MaxCollateralRatioSet(newMaxCollateralRatio);
   }
 
-  function setBorrowFee(uint256 newBorrowFee) external onlyRole(_MANAGER_ROLE) {
+  /// @notice Sets the borrow fee
+  /// @param newBorrowFee The new borrow fee
+  function setBorrowFee(
+    uint256 newBorrowFee
+  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
     _s.borrowFee = newBorrowFee;
 
     emit BorrowFeeSet(newBorrowFee);
   }
 
-  function setLiquidationFee(uint256 newLiquidationFee)
-    external
-    onlyRole(_MANAGER_ROLE)
-  {
+  /// @notice Sets the liquidation fee
+  /// @param newLiquidationFee The liquidation fee
+  function setLiquidationFee(
+    uint256 newLiquidationFee
+  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
     _s.liquidationFee = newLiquidationFee;
 
     emit LiquidationFeeSet(newLiquidationFee);
   }
 
-  function setAdapter(address newAdapter) external onlyRole(_MANAGER_ROLE) {
+  /// @notice Sets the adapter address
+  /// @param newAdapter The new adapter address
+  function setAdapter(
+    address newAdapter
+  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
     _s.adapter = newAdapter;
 
     emit AdapterSet(newAdapter);
   }
 
-  function setAdapterData(bytes memory newAdapterData)
-    external
-    onlyRole(_MANAGER_ROLE)
-  {
+  /// @notice Sets the adapter data
+  /// @param newAdapterData The adapter data
+  function setAdapterData(
+    bytes memory newAdapterData
+  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
     _s.adapterData = newAdapterData;
 
     emit AdapterDataSet(newAdapterData);
   }
 
-  function setMarketState(bool newState) external onlyRole(_MANAGER_ROLE) {
+  /// @notice Sets the market state
+  /// @param newState The new market state
+  function setMarketState(
+    bool newState
+  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
     _s.marketsLocked = !newState;
 
     emit MarketStateSet(newState);
   }
 
-  function increaseMaxMint(uint256 increase) external onlyRole(_MANAGER_ROLE) {
+  /// @notice Increases the max amount of CASH that can be minted
+  /// @param increase The amount to increase the cap
+  function increaseMaxMint(
+    uint256 increase
+  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
     _s.maxMint += increase;
 
     emit MintIncreasedSet(_s.maxMint, increase);
   }
 
-  function addYieldSource(address source) external onlyRole(_MANAGER_ROLE) {
+  /// @notice Adds the yield source as an option for users
+  /// @param source The yield source to add
+  function addYieldSource(
+    address source
+  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
     require(
       _s.yieldSources.add(source),
       "VaultSettersFacet: Yield source already added"
@@ -113,10 +142,13 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
     _s.yieldInfo[source].enabled = true;
   }
 
-  function setYieldSourceState(address source, bool state)
-    external
-    onlyRole(_MANAGER_ROLE)
-  {
+  /// @notice Sets the yield source enabled state
+  /// @param source The yield source
+  /// @param state If yield source is enabled
+  function setYieldSourceState(
+    address source,
+    bool state
+  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
     require(
       _s.yieldSources.contains(source),
       "VaultSettersFacet: Yield source does not exist"

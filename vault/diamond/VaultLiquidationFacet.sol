@@ -16,12 +16,10 @@ import {ICash} from "../../core/ICash.sol";
 contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
   using SafeERC20 for IERC20;
 
-  function liquidateUser(uint256 user)
-    external
-    override
-    freezeCheck
-    updateDebt
-  {
+  /// @inheritdoc	IVaultLiquidation
+  function liquidateUser(
+    uint256 user
+  ) external override freezeCheck updateDebt {
     LiquidationInfo memory info = liquidationInfo(user);
 
     require(!info.solvent, "VaultLiquidationFacet: User is solvent");
@@ -75,12 +73,10 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
     );
   }
 
-  function liquidationInfo(uint256 user)
-    public
-    view
-    override
-    returns (LiquidationInfo memory)
-  {
+  /// @inheritdoc	IVaultLiquidation
+  function liquidationInfo(
+    uint256 user
+  ) public view override returns (LiquidationInfo memory) {
     if (_isSolvent(user)) {
       return LiquidationInfo(true, 0, 0, 0, 0);
     }
@@ -120,6 +116,10 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
       LiquidationInfo(false, borrowChange, realTokens, protocolFee, rebate);
   }
 
+  /// @notice Calls the liquidator with receiveLiquidation and checks if result was correct
+  /// @param liquidator The liquidator
+  /// @param to The user being liquidated
+  /// @param info The liquidation info
   function _checkLiquidator(
     address liquidator,
     uint256 to,
@@ -148,11 +148,13 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
     );
   }
 
-  function _liquidationAmount(uint256 user)
-    internal
-    view
-    returns (uint256 debtChange, uint256 collateralChange)
-  {
+  /// @notice Returns the liquidation numbers for the user
+  /// @param user The user id
+  /// @return debtChange The debt change
+  /// @return collateralChange The collateral change
+  function _liquidationAmount(
+    uint256 user
+  ) internal view returns (uint256 debtChange, uint256 collateralChange) {
     UserInfo storage info = _s.userInfo[user];
     uint256 collateral = _scaleFromAsset(_deposit(user) * _price()) / 1 ether;
     uint256 debt = _debtValueUser(user);
@@ -170,9 +172,9 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
 
     debtChange = ((1 ether *
       (debt *
-        1 ether**uint256(2) -
+        1 ether ** uint256(2) -
         (collateral * targetHealth * maxCollateralRatio))) /
-      (1 ether**uint256(3) -
+      (1 ether ** uint256(3) -
         (targetHealth * maxCollateralRatio * 1 ether) -
         (_s.liquidationFee * targetHealth * maxCollateralRatio)));
 
@@ -181,18 +183,26 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
     // ((y*(debt_*y^(2)-collat_*health_*mcr_))/(y^(3)-health_*mcr_*y-fee_*health_*mcr_))
   }
 
+  /// @notice Returns the amount with the liquidation fee added
+  /// @param amount The base amount
+  /// @return The amount with the fee
   function _withFee(uint256 amount) internal view returns (uint256) {
     return amount + ((amount * _s.liquidationFee) / (1 ether));
 
     // w_=x_+((x_*fee_)/(y))
   }
 
+  /// @notice Returns the amount with the liquidation fee removed
+  /// @param amount The amount with the fee
+  /// @return The base amount
   function _withoutFee(uint256 amount) internal view returns (uint256) {
     return ((amount * 1 ether) / (1 ether + _s.liquidationFee));
 
     // x_=((w_*y)/(y+fee_))
   }
 
+  /// @notice Returns the treasury liquidation fee
+  /// @return The treasury liquidation fee
   function _treasuryLiquidationFee() internal view returns (uint256) {
     return
       MathLib.min(
