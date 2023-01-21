@@ -12,6 +12,7 @@ contract AccessControlCutFacet is AccessControlBase, IDiamondCut {
   /// @param cut The list of cuts to do
   /// @param init The optional initializer address
   /// @param initdata The optional initializer data
+  /// @custom:protected onlyRole(DIAMOND_CUT_ROLE)
   function diamondCut(
     IDiamondCut.FacetCut[] memory cut,
     address init,

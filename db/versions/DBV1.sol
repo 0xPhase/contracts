@@ -9,30 +9,32 @@ contract DBV1 is DBV1Storage {
   using EnumerableSet for EnumerableSet.Bytes32Set;
 
   /// @inheritdoc	IDB
+  /// @custom:protected onlyOwner
   function add(bytes32 key, address value) external override onlyOwner {
     add(key, bytes32(bytes20(value)));
   }
 
   /// @inheritdoc	IDB
+  /// @custom:protected onlyOwner
   function set(bytes32 key, address value) external override onlyOwner {
     set(key, bytes32(bytes20(value)));
   }
 
   /// @inheritdoc	IDB
-  function add(bytes32[] memory keys, address value)
-    external
-    override
-    onlyOwner
-  {
+  /// @custom:protected onlyOwner
+  function add(
+    bytes32[] memory keys,
+    address value
+  ) external override onlyOwner {
     add(keys, bytes32(bytes20(value)));
   }
 
   /// @inheritdoc	IDB
-  function add(bytes32 key, bytes32[] memory values)
-    external
-    override
-    onlyOwner
-  {
+  /// @custom:protected onlyOwner
+  function add(
+    bytes32 key,
+    bytes32[] memory values
+  ) external override onlyOwner {
     Set storage keySet = _keys[key];
     EnumerableSet.Bytes32Set storage valueList = _valueList;
 
@@ -50,17 +52,18 @@ contract DBV1 is DBV1Storage {
   }
 
   /// @inheritdoc	IDB
-  function add(bytes32 key, address[] memory values)
-    external
-    override
-    onlyOwner
-  {
+  /// @custom:protected onlyOwner
+  function add(
+    bytes32 key,
+    address[] memory values
+  ) external override onlyOwner {
     for (uint256 i = 0; i < values.length; i++) {
       add(key, bytes32(bytes20(values[i])));
     }
   }
 
   /// @inheritdoc	IDB
+  /// @custom:protected onlyOwner
   function removeValue(bytes32 value) external override onlyOwner {
     if (!hasValue(value)) return;
 
@@ -84,6 +87,7 @@ contract DBV1 is DBV1Storage {
   }
 
   /// @inheritdoc	IDB
+  /// @custom:protected onlyOwner
   function removePair(bytes32 key, bytes32 value) external override onlyOwner {
     if (!hasPair(key, value)) return;
 
@@ -104,12 +108,9 @@ contract DBV1 is DBV1Storage {
   }
 
   /// @inheritdoc	IDB
-  function digest(Opcode memory opcode)
-    external
-    view
-    override
-    returns (bytes32[] memory result)
-  {
+  function digest(
+    Opcode memory opcode
+  ) external view override returns (bytes32[] memory result) {
     uint256 length = _valueList.length();
     uint256[] memory digested = _digest(opcode);
     uint256 totalTruthy = 0;
@@ -132,32 +133,23 @@ contract DBV1 is DBV1Storage {
   }
 
   /// @inheritdoc	IDB
-  function getValue(string memory key)
-    external
-    view
-    override
-    returns (bytes32)
-  {
+  function getValue(
+    string memory key
+  ) external view override returns (bytes32) {
     return getValueB32(keccak256(abi.encodePacked(key)));
   }
 
   /// @inheritdoc	IDB
-  function getAddress(string memory key)
-    external
-    view
-    override
-    returns (address)
-  {
+  function getAddress(
+    string memory key
+  ) external view override returns (address) {
     return getAddressB32(keccak256(abi.encodePacked(key)));
   }
 
   /// @inheritdoc	IDB
-  function getValues(bytes32 key)
-    external
-    view
-    override
-    returns (bytes32[] memory arr)
-  {
+  function getValues(
+    bytes32 key
+  ) external view override returns (bytes32[] memory arr) {
     Set storage keySet = _keys[key];
     if (!keySet.exists) return new bytes32[](0);
 
@@ -172,12 +164,9 @@ contract DBV1 is DBV1Storage {
   }
 
   /// @inheritdoc	IDB
-  function getKeys(bytes32 value)
-    external
-    view
-    override
-    returns (bytes32[] memory arr)
-  {
+  function getKeys(
+    bytes32 value
+  ) external view override returns (bytes32[] memory arr) {
     Set storage valueSet = _values[value];
     if (!valueSet.exists) return new bytes32[](0);
 
@@ -192,6 +181,7 @@ contract DBV1 is DBV1Storage {
   }
 
   /// @inheritdoc	IDB
+  /// @custom:protected onlyOwner
   function add(bytes32 key, bytes32 value) public override onlyOwner {
     Set storage keySet = _keys[key];
     Set storage valueSet = _values[value];
@@ -205,6 +195,7 @@ contract DBV1 is DBV1Storage {
   }
 
   /// @inheritdoc	IDB
+  /// @custom:protected onlyOwner
   function add(bytes32[] memory keys, bytes32 value) public override onlyOwner {
     Set storage valueSet = _values[value];
 
@@ -223,12 +214,14 @@ contract DBV1 is DBV1Storage {
   }
 
   /// @inheritdoc	IDB
+  /// @custom:protected onlyOwner
   function set(bytes32 key, bytes32 value) public override onlyOwner {
     removeKey(key);
     add(key, value);
   }
 
   /// @inheritdoc	IDB
+  /// @custom:protected onlyOwner
   function removeKey(bytes32 key) public override onlyOwner {
     if (!hasKey(key)) return;
 
@@ -278,12 +271,10 @@ contract DBV1 is DBV1Storage {
   }
 
   /// @inheritdoc	IDB
-  function hasPair(bytes32 key, bytes32 value)
-    public
-    view
-    override
-    returns (bool)
-  {
+  function hasPair(
+    bytes32 key,
+    bytes32 value
+  ) public view override returns (bool) {
     if (!hasKey(key) || !hasValue(value)) return false;
     return _keys[key].list.contains(value);
   }
@@ -291,11 +282,9 @@ contract DBV1 is DBV1Storage {
   /// @notice Executes an opcode and its descendants against every value in the DB. It is effectively a custom VM, being able to do complex computation against all values in the DB
   /// @param opcode The opcode to execute
   /// @return mem The resulting memory
-  function _digest(Opcode memory opcode)
-    internal
-    view
-    returns (uint256[] memory mem)
-  {
+  function _digest(
+    Opcode memory opcode
+  ) internal view returns (uint256[] memory mem) {
     OpcodeType op = opcode.opcode;
     bytes memory data = opcode.data;
     uint256 length = _valueList.length();

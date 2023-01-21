@@ -20,6 +20,7 @@ contract FixedRateInterest is Ownable, IInterest {
 
   /// @notice Sets the fixed interest
   /// @param newInterest The new fixed interest
+  /// @custom:protected onlyOwner
   function setFixedInterest(uint256 newInterest) external onlyOwner {
     fixedInterest = newInterest;
   }

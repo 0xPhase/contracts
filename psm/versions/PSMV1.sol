@@ -4,12 +4,13 @@ pragma solidity ^0.8.17;
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {IPSM, PSMV1Storage} from "../IPSM.sol";
 import {MathLib} from "../../lib/MathLib.sol";
-import {PSMV1Storage} from "../IPSM.sol";
 
 contract PSMV1 is PSMV1Storage {
   using SafeERC20 for IERC20;
 
+  /// @notice Mints the yield for the contract
   modifier mintYield() {
     uint256 total = totalBalance();
 
@@ -21,7 +22,8 @@ contract PSMV1 is PSMV1Storage {
     _;
   }
 
-  function buyCash(uint256 amount) external mintYield {
+  /// @inheritdoc	IPSM
+  function buyCash(uint256 amount) external override mintYield {
     require(amount > 0, "PSMV1: Cannot buy 0 CASH");
 
     underlying.safeTransferFrom(msg.sender, address(this), amount);
@@ -46,7 +48,8 @@ contract PSMV1 is PSMV1Storage {
     emit CashBought(msg.sender, fee, userAmount, fullAmount);
   }
 
-  function sellCash(uint256 amount) external mintYield {
+  /// @inheritdoc	IPSM
+  function sellCash(uint256 amount) external override mintYield {
     require(amount > 0, "PSMV1: Cannot sell 0 CASH");
 
     uint256 fullAmount = MathLib.scaleAmount(amount, _underlyingDecimals, 18);
@@ -67,17 +70,24 @@ contract PSMV1 is PSMV1Storage {
     emit CashSold(msg.sender, fee, fullAmount, fullUserAmount);
   }
 
+  /// @notice Sets the buy fee
+  /// @param fee The buy fee
+  /// @custom:protected onlyRole(MANAGER_ROLE)
   function setBuyFee(uint256 fee) external onlyRole(MANAGER_ROLE) {
     buyFee = fee;
     emit BuyFeeSet(fee);
   }
 
+  /// @notice Sets the sell fee
+  /// @param fee The sell fee
+  /// @custom:protected onlyRole(MANAGER_ROLE)
   function setSellFee(uint256 fee) external onlyRole(MANAGER_ROLE) {
     sellFee = fee;
     emit SellFeeSet(fee);
   }
 
-  function totalBalance() public view returns (uint256) {
+  /// @inheritdoc	IPSM
+  function totalBalance() public view override returns (uint256) {
     return
       MathLib.scaleAmount(aToken.balanceOf(address(this)), _aTokenDecimals, 18);
   }

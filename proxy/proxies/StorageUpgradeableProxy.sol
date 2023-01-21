@@ -51,6 +51,7 @@ contract StorageUpgradeableProxy is ProxyOwnable, Proxy {
   /// @param _newSlot Slot of the new implementation
   /// @param _oldImplementationData Optional call data for old implementation before upgrade
   /// @param _newImplementationData Optional call data for new implementation after upgrade
+  /// @custom:protected onlyOwner
   function upgradeTo(
     address _newStorage,
     bytes32 _newSlot,

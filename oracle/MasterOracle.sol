@@ -25,6 +25,7 @@ contract MasterOracle is Ownable, Multicall, IOracle {
   /// @notice Sets the oracle for an address, address(0) removes the oracle and the asset
   /// @param asset The asset address
   /// @param newOracle The oracle address
+  /// @custom:protected onlyOwner
   function setAsset(address asset, address newOracle) external onlyOwner {
     if (newOracle == address(0)) {
       _assets.remove(asset);

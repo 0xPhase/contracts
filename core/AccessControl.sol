@@ -121,42 +121,38 @@ contract AccessControl is IAccessControl, ERC165 {
   }
 
   /// @inheritdoc	IAccessControl
-  function grantRoleAccount(bytes32 role, address account)
-    public
-    virtual
-    override
-    onlyRole(getRoleAdmin(role))
-  {
+  /// @custom:protected onlyRole(getRoleAdmin(role))
+  function grantRoleAccount(
+    bytes32 role,
+    address account
+  ) public virtual override onlyRole(getRoleAdmin(role)) {
     _grantRoleAccount(role, account);
   }
 
   /// @inheritdoc	IAccessControl
-  function grantRoleKey(bytes32 role, bytes32 key)
-    public
-    virtual
-    override
-    onlyRole(getRoleAdmin(role))
-  {
+  /// @custom:protected onlyRole(getRoleAdmin(role))
+  function grantRoleKey(
+    bytes32 role,
+    bytes32 key
+  ) public virtual override onlyRole(getRoleAdmin(role)) {
     _grantRoleKey(role, key);
   }
 
   /// @inheritdoc	IAccessControl
-  function revokeRoleAccount(bytes32 role, address account)
-    public
-    virtual
-    override
-    onlyRole(getRoleAdmin(role))
-  {
+  /// @custom:protected onlyRole(getRoleAdmin(role))
+  function revokeRoleAccount(
+    bytes32 role,
+    address account
+  ) public virtual override onlyRole(getRoleAdmin(role)) {
     _revokeRoleAccount(role, account);
   }
 
   /// @inheritdoc	IAccessControl
-  function revokeRoleKey(bytes32 role, bytes32 key)
-    public
-    virtual
-    override
-    onlyRole(getRoleAdmin(role))
-  {
+  /// @custom:protected onlyRole(getRoleAdmin(role))
+  function revokeRoleKey(
+    bytes32 role,
+    bytes32 key
+  ) public virtual override onlyRole(getRoleAdmin(role)) {
     _revokeRoleKey(role, key);
   }
 
@@ -171,26 +167,19 @@ contract AccessControl is IAccessControl, ERC165 {
   }
 
   /// @inheritdoc	ERC165
-  function supportsInterface(bytes4 interfaceId)
-    public
-    view
-    virtual
-    override
-    returns (bool)
-  {
+  function supportsInterface(
+    bytes4 interfaceId
+  ) public view virtual override returns (bool) {
     return
       interfaceId == type(IAccessControl).interfaceId ||
       super.supportsInterface(interfaceId);
   }
 
   /// @inheritdoc	IAccessControl
-  function hasRole(bytes32 role, address account)
-    public
-    view
-    virtual
-    override
-    returns (bool)
-  {
+  function hasRole(
+    bytes32 role,
+    address account
+  ) public view virtual override returns (bool) {
     RoleData storage roleData = _roles[role];
 
     if (roleData.members[account]) return true;
@@ -206,13 +195,9 @@ contract AccessControl is IAccessControl, ERC165 {
   }
 
   /// @inheritdoc	IAccessControl
-  function getRoleAdmin(bytes32 role)
-    public
-    view
-    virtual
-    override
-    returns (bytes32)
-  {
+  function getRoleAdmin(
+    bytes32 role
+  ) public view virtual override returns (bytes32) {
     return _roles[role].adminRole;
   }
 

@@ -10,6 +10,7 @@ contract OwnableCutFacet is OwnableBase, IDiamondCut {
   /// @param cut The list of cuts to do
   /// @param init The optional initializer address
   /// @param initdata The optional initializer data
+  /// @custom:protected onlyOwner
   function diamondCut(
     IDiamondCut.FacetCut[] memory cut,
     address init,

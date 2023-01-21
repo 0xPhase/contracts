@@ -27,11 +27,7 @@ contract AdminUpgradeableProxy is ProxyOwnable, Proxy {
   /// @param _owner Address of proxy owner
   /// @param _target Address of contract for proxy
   /// @param _initialCall Optional initial calldata
-  constructor(
-    address _owner,
-    address _target,
-    bytes memory _initialCall
-  ) {
+  constructor(address _owner, address _target, bytes memory _initialCall) {
     _setImplementation(_target);
     _initializeOwnership(_owner);
 
@@ -45,6 +41,7 @@ contract AdminUpgradeableProxy is ProxyOwnable, Proxy {
   /// @param _newImplementation Address of the new implementation
   /// @param _oldImplementationData Optional call data for old implementation before upgrade
   /// @param _newImplementationData Optional call data for new implementation after upgrade
+  /// @custom:protected onlyOwner
   function upgradeTo(
     address _newImplementation,
     bytes memory _oldImplementationData,

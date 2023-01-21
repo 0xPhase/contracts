@@ -12,12 +12,10 @@ contract Manager is Ownable {
   /// @notice Does a batch of calls
   /// @param data The compressed and optimized call list
   /// @return result The combined results of all the calls
-  function batchCall(bytes calldata data)
-    external
-    payable
-    onlyOwner
-    returns (bytes memory result)
-  {
+  /// @custom:protected onlyOwner
+  function batchCall(
+    bytes calldata data
+  ) external payable onlyOwner returns (bytes memory result) {
     uint256 offset = 0;
 
     while (offset < data.length) {

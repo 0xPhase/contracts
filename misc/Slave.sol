@@ -14,6 +14,7 @@ contract Slave is Ownable {
   /// @notice Does an external call
   /// @param target The target address
   /// @param data The calldata
+  /// @custom:protected onlyOwner
   function doCall(
     address target,
     bytes memory data
@@ -25,6 +26,7 @@ contract Slave is Ownable {
   /// @param target The target address
   /// @param data The calldata
   /// @param value The call value
+  /// @custom:protected onlyOwner
   function doCall(
     address target,
     bytes memory data,

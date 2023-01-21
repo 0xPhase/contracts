@@ -40,6 +40,7 @@ abstract contract ProxyOwnable is ProxyInitializable {
    * NOTE: Renouncing ownership will leave the contract without an owner,
    * thereby removing any functionality that is only available to the owner.
    */
+  /// @custom:protected onlyOwner
   function renounceOwnership() public virtual onlyOwner {
     _transferOwnership(address(0));
   }
@@ -48,6 +49,7 @@ abstract contract ProxyOwnable is ProxyInitializable {
    * @dev Transfers ownership of the contract to a new account (`newOwner`).
    * Can only be called by the current owner.
    */
+  /// @custom:protected onlyOwner
   function transferOwnership(address newOwner) public virtual onlyOwner {
     require(
       newOwner != address(0),

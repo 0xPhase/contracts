@@ -11,6 +11,7 @@ contract FixedOracle is Ownable, Multicall, IFixedOracle {
   mapping(address => uint256) internal _price;
 
   /// @inheritdoc	IFixedOracle
+  /// @custom:protected onlyOwner
   function setPrice(address asset, uint256 price) external override onlyOwner {
     _price[asset] = price;
     emit PriceSet(asset, price);

@@ -20,6 +20,7 @@ contract Storage is Ownable, Multicall {
   /// @notice Writes an address value into storage
   /// @param id The storage slot
   /// @param value The address value
+  /// @custom:protected onlyOwner
   function write(bytes32 id, address value) external onlyOwner {
     id.slot().getAddressSlot().value = value;
   }
@@ -27,6 +28,7 @@ contract Storage is Ownable, Multicall {
   /// @notice Writes a boolean value into storage
   /// @param id The storage slot
   /// @param value The boolean value
+  /// @custom:protected onlyOwner
   function write(bytes32 id, bool value) external onlyOwner {
     id.slot().getBooleanSlot().value = value;
   }
@@ -34,6 +36,7 @@ contract Storage is Ownable, Multicall {
   /// @notice Writes a bytes32 value into storage
   /// @param id The storage slot
   /// @param value The bytes32 value
+  /// @custom:protected onlyOwner
   function write(bytes32 id, bytes32 value) external onlyOwner {
     id.slot().getBytes32Slot().value = value;
   }
@@ -41,6 +44,7 @@ contract Storage is Ownable, Multicall {
   /// @notice Writes an uint256 value into storage
   /// @param id The storage slot
   /// @param value The uint256 value
+  /// @custom:protected onlyOwner
   function write(bytes32 id, uint256 value) external onlyOwner {
     id.slot().getUint256Slot().value = value;
   }

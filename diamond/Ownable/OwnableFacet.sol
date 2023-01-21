@@ -6,6 +6,7 @@ import {OwnableBase} from "./OwnableBase.sol";
 
 contract OwnableFacet is OwnableBase, IOwnable {
   /// @inheritdoc	IOwnable
+  /// @custom:protected onlyOwner
   function transferOwnership(address newOwner) public virtual onlyOwner {
     require(
       newOwner != address(0),
@@ -16,6 +17,7 @@ contract OwnableFacet is OwnableBase, IOwnable {
   }
 
   /// @inheritdoc	IOwnable
+  /// @custom:protected onlyOwner
   function renounceOwnership() public virtual onlyOwner {
     _transferOwnership(address(0));
   }

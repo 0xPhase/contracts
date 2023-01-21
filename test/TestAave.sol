@@ -33,17 +33,20 @@ contract AToken is ERC20, Ownable {
   TestAave internal immutable _aave;
   uint8 internal immutable _decimals;
 
-  constructor(TestAave aave_, uint8 decimals_)
-    ERC20("Aave Test USDC", "atUSDC")
-  {
+  constructor(
+    TestAave aave_,
+    uint8 decimals_
+  ) ERC20("Aave Test USDC", "atUSDC") {
     _aave = aave_;
     _decimals = decimals_;
   }
 
+  /// @custom:protected onlyOwner
   function mint(address to, uint256 amount) public onlyOwner {
     _mint(to, amount);
   }
 
+  /// @custom:protected onlyOwner
   function burn(address from, uint256 amount) public onlyOwner {
     _burn(from, amount);
   }

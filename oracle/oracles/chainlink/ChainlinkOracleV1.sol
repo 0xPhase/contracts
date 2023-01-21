@@ -8,6 +8,7 @@ import {IOracle} from "../../IOracle.sol";
 
 contract ChainlinkOracleV1 is ChainlinkOracleStorageV1 {
   /// @inheritdoc	IChainlinkOracle
+  /// @custom:protected onlyOwner
   function setFeed(address asset, address feed) external override onlyOwner {
     priceFeeds[asset] = feed;
 

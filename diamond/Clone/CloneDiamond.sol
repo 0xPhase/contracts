@@ -44,6 +44,7 @@ contract CloneDiamond is Proxy, OwnableBase {
   /// @param newTarget The new diamond target
   /// @param initializer_ The optional initializer address
   /// @param initializerData_ The optional initializer calldata
+  /// @custom:protected onlyOwner
   function changeTarget(
     address newTarget,
     address initializer_,
@@ -59,6 +60,7 @@ contract CloneDiamond is Proxy, OwnableBase {
   /// @notice Initializes the diamond
   /// @param initializer_ The initializer address
   /// @param initializerData_ The initializer calldata
+  /// @custom:protected onlyOwner
   function initialize(
     address initializer_,
     bytes memory initializerData_
