@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 /// @title Multicall3
@@ -39,11 +39,9 @@ contract Multicall3 {
   /// @param calls An array of Call structs
   /// @return blockNumber The block number where the calls were executed
   /// @return returnData An array of bytes containing the responses
-  function aggregate(Call[] calldata calls)
-    public
-    payable
-    returns (uint256 blockNumber, bytes[] memory returnData)
-  {
+  function aggregate(
+    Call[] calldata calls
+  ) public payable returns (uint256 blockNumber, bytes[] memory returnData) {
     blockNumber = block.number;
     uint256 length = calls.length;
     returnData = new bytes[](length);
@@ -67,11 +65,10 @@ contract Multicall3 {
   /// @param requireSuccess If true, require all calls to succeed
   /// @param calls An array of Call structs
   /// @return returnData An array of Result structs
-  function tryAggregate(bool requireSuccess, Call[] calldata calls)
-    public
-    payable
-    returns (Result[] memory returnData)
-  {
+  function tryAggregate(
+    bool requireSuccess,
+    Call[] calldata calls
+  ) public payable returns (Result[] memory returnData) {
     uint256 length = calls.length;
     returnData = new Result[](length);
     Call calldata call;
@@ -95,14 +92,13 @@ contract Multicall3 {
   /// @return blockNumber The block number where the calls were executed
   /// @return blockHash The hash of the block where the calls were executed
   /// @return returnData An array of Result structs
-  function tryBlockAndAggregate(bool requireSuccess, Call[] calldata calls)
+  function tryBlockAndAggregate(
+    bool requireSuccess,
+    Call[] calldata calls
+  )
     public
     payable
-    returns (
-      uint256 blockNumber,
-      bytes32 blockHash,
-      Result[] memory returnData
-    )
+    returns (uint256 blockNumber, bytes32 blockHash, Result[] memory returnData)
   {
     blockNumber = block.number;
     blockHash = blockhash(block.number);
@@ -115,14 +111,12 @@ contract Multicall3 {
   /// @return blockNumber The block number where the calls were executed
   /// @return blockHash The hash of the block where the calls were executed
   /// @return returnData An array of Result structs
-  function blockAndAggregate(Call[] calldata calls)
+  function blockAndAggregate(
+    Call[] calldata calls
+  )
     public
     payable
-    returns (
-      uint256 blockNumber,
-      bytes32 blockHash,
-      Result[] memory returnData
-    )
+    returns (uint256 blockNumber, bytes32 blockHash, Result[] memory returnData)
   {
     (blockNumber, blockHash, returnData) = tryBlockAndAggregate(true, calls);
   }
@@ -130,11 +124,9 @@ contract Multicall3 {
   /// @notice Aggregate calls, ensuring each returns success if required
   /// @param calls An array of Call3 structs
   /// @return returnData An array of Result structs
-  function aggregate3(Call3[] calldata calls)
-    public
-    payable
-    returns (Result[] memory returnData)
-  {
+  function aggregate3(
+    Call3[] calldata calls
+  ) public payable returns (Result[] memory returnData) {
     uint256 length = calls.length;
     returnData = new Result[](length);
     Call3 calldata calli;
@@ -184,11 +176,9 @@ contract Multicall3 {
   /// @notice Reverts if msg.value is less than the sum of the call values
   /// @param calls An array of Call3Value structs
   /// @return returnData An array of Result structs
-  function aggregate3Value(Call3Value[] calldata calls)
-    public
-    payable
-    returns (Result[] memory returnData)
-  {
+  function aggregate3Value(
+    Call3Value[] calldata calls
+  ) public payable returns (Result[] memory returnData) {
     uint256 valAccumulator;
     uint256 length = calls.length;
     returnData = new Result[](length);
@@ -246,11 +236,9 @@ contract Multicall3 {
 
   /// @notice Returns the block hash for the given block number
   /// @param blockNumber The block number
-  function getBlockHash(uint256 blockNumber)
-    public
-    view
-    returns (bytes32 blockHash)
-  {
+  function getBlockHash(
+    uint256 blockNumber
+  ) public view returns (bytes32 blockHash) {
     blockHash = blockhash(blockNumber);
   }
 

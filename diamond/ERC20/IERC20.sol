@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 struct ERC20Storage {
@@ -85,8 +85,8 @@ interface IERC20 {
    *
    * This value changes when {approve} or {transferFrom} are called.
    */
-  function allowance(address owner, address spender)
-    external
-    view
-    returns (uint256);
+  function allowance(
+    address owner,
+    address spender
+  ) external view returns (uint256);
 }

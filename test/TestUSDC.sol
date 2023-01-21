@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -13,7 +13,7 @@ contract TestUSDC is ERC20, ERC20Burnable {
   function mint(address to) external {
     require(counter[to] <= 2, "TestUSDC: Already minted max amount");
 
-    _mint(to, 200_000 * (uint256(10)**uint256(decimals())));
+    _mint(to, 200_000 * (uint256(10) ** uint256(decimals())));
 
     counter[to]++;
   }

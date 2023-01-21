@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -12,12 +12,10 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
   using SafeERC20 for IERC20;
 
   /// @inheritdoc	IBondAccounting
-  function bond(uint256 user, uint256 amount)
-    external
-    override
-    updateTime
-    ownerCheck(user, msg.sender)
-  {
+  function bond(
+    uint256 user,
+    uint256 amount
+  ) external override updateTime ownerCheck(user, msg.sender) {
     IERC20(address(_s.cash)).safeTransferFrom(
       msg.sender,
       address(this),
@@ -35,11 +33,10 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
   }
 
   /// @inheritdoc	IBondAccounting
-  function exit(uint256 user, uint256 index)
-    external
-    override
-    ownerCheck(user, msg.sender)
-  {
+  function exit(
+    uint256 user,
+    uint256 index
+  ) external override ownerCheck(user, msg.sender) {
     Bond[] storage bonds = _s.bonds[user];
 
     require(

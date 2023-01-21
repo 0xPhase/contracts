@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 interface IPoolAddressesProvider {
@@ -143,8 +143,10 @@ interface IPoolAddressesProvider {
    * @param id The id
    * @param newImplementationAddress The address of the new implementation
    */
-  function setAddressAsProxy(bytes32 id, address newImplementationAddress)
-    external;
+  function setAddressAsProxy(
+    bytes32 id,
+    address newImplementationAddress
+  ) external;
 
   /**
    * @notice Sets an address for an id replacing the address saved in the addresses map.

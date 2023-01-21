@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 import {ICreditAccount} from "../account/ICreditAccount.sol";
@@ -8,12 +8,9 @@ import {ICash} from "../core/ICash.sol";
 
 contract BondGettersFacet is BondBase, IBondGetters {
   /// @inheritdoc	IBondGetters
-  function bonds(uint256 user)
-    external
-    view
-    override
-    returns (Bond[] memory result)
-  {
+  function bonds(
+    uint256 user
+  ) external view override returns (Bond[] memory result) {
     Bond[] storage list = _s.bonds[user];
     uint256 length = list.length;
 

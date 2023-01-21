@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
@@ -17,10 +17,10 @@ contract BondInitializer is BondBase, ProxyInitializable {
   /// @notice Initializes the bond contract on version 1
   /// @param db_ The protocol DB
   /// @param bondDuration_ The bond duration
-  function initializeBondV1(IDB db_, uint256 bondDuration_)
-    external
-    initialize("V1")
-  {
+  function initializeBondV1(
+    IDB db_,
+    uint256 bondDuration_
+  ) external initialize("V1") {
     _initializeERC20("Phase Cash Bond", "zCASH");
 
     _initializeDB(db_);

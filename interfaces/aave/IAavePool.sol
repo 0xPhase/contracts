@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 import {IPoolAddressesProvider} from "./IPoolAddressesProvider.sol";
@@ -245,11 +245,7 @@ interface IAavePool {
    * @param amount The amount to back
    * @param fee The amount paid in fees
    **/
-  function backUnbacked(
-    address asset,
-    uint256 amount,
-    uint256 fee
-  ) external;
+  function backUnbacked(address asset, uint256 amount, uint256 fee) external;
 
   /**
    * @notice Supplies an `amount` of underlying asset into the reserve, receiving in return overlying aTokens.
@@ -422,8 +418,10 @@ interface IAavePool {
    * @param asset The address of the underlying asset supplied
    * @param useAsCollateral True if the user wants to use the supply as collateral, false otherwise
    **/
-  function setUserUseReserveAsCollateral(address asset, bool useAsCollateral)
-    external;
+  function setUserUseReserveAsCollateral(
+    address asset,
+    bool useAsCollateral
+  ) external;
 
   /**
    * @notice Function to liquidate a non-healthy position collateral-wise, with Health Factor below 1
@@ -501,7 +499,9 @@ interface IAavePool {
    * @return ltv The loan to value of The user
    * @return healthFactor The current health factor of the user
    **/
-  function getUserAccountData(address user)
+  function getUserAccountData(
+    address user
+  )
     external
     view
     returns (
@@ -565,50 +565,45 @@ interface IAavePool {
    * @param asset The address of the underlying asset of the reserve
    * @return The configuration of the reserve
    **/
-  function getConfiguration(address asset)
-    external
-    view
-    returns (DataTypes.ReserveConfigurationMap memory);
+  function getConfiguration(
+    address asset
+  ) external view returns (DataTypes.ReserveConfigurationMap memory);
 
   /**
    * @notice Returns the configuration of the user across all the reserves
    * @param user The user address
    * @return The configuration of the user
    **/
-  function getUserConfiguration(address user)
-    external
-    view
-    returns (DataTypes.UserConfigurationMap memory);
+  function getUserConfiguration(
+    address user
+  ) external view returns (DataTypes.UserConfigurationMap memory);
 
   /**
    * @notice Returns the normalized income normalized income of the reserve
    * @param asset The address of the underlying asset of the reserve
    * @return The reserve's normalized income
    */
-  function getReserveNormalizedIncome(address asset)
-    external
-    view
-    returns (uint256);
+  function getReserveNormalizedIncome(
+    address asset
+  ) external view returns (uint256);
 
   /**
    * @notice Returns the normalized variable debt per unit of asset
    * @param asset The address of the underlying asset of the reserve
    * @return The reserve normalized variable debt
    */
-  function getReserveNormalizedVariableDebt(address asset)
-    external
-    view
-    returns (uint256);
+  function getReserveNormalizedVariableDebt(
+    address asset
+  ) external view returns (uint256);
 
   /**
    * @notice Returns the state and configuration of the reserve
    * @param asset The address of the underlying asset of the reserve
    * @return The state and configuration data of the reserve
    **/
-  function getReserveData(address asset)
-    external
-    view
-    returns (DataTypes.ReserveData memory);
+  function getReserveData(
+    address asset
+  ) external view returns (DataTypes.ReserveData memory);
 
   /**
    * @notice Validates and finalizes an aToken transfer
@@ -687,10 +682,9 @@ interface IAavePool {
    * @param id The id of the category
    * @return The configuration data of the category
    */
-  function getEModeCategoryData(uint8 id)
-    external
-    view
-    returns (DataTypes.EModeCategory memory);
+  function getEModeCategoryData(
+    uint8 id
+  ) external view returns (DataTypes.EModeCategory memory);
 
   /**
    * @notice Allows a user to use the protocol in eMode
@@ -757,11 +751,7 @@ interface IAavePool {
    * @param to The address of the recipient
    * @param amount The amount of token to transfer
    */
-  function rescueTokens(
-    address token,
-    address to,
-    uint256 amount
-  ) external;
+  function rescueTokens(address token, address to, uint256 amount) external;
 
   /**
    * @notice Supplies an `amount` of underlying asset into the reserve, receiving in return overlying aTokens.

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -16,9 +16,9 @@ abstract contract BondBase is
   ERC20Base,
   ClockBase
 {
-  uint256 internal constant _ETH_PRECISION = 10**18;
+  uint256 internal constant _ETH_PRECISION = 10 ** 18;
   uint256 internal constant _POWER = 2;
-  uint256 internal constant _POWER_PRECISION = _ETH_PRECISION**(_POWER - 1);
+  uint256 internal constant _POWER_PRECISION = _ETH_PRECISION ** (_POWER - 1);
   uint256 internal constant _BASE_VALUE = 0.5 ether;
   uint256 internal constant _MAX_VALUE = 0.95 ether;
   uint256 internal constant _REMAINING_VALUE = _ETH_PRECISION - _BASE_VALUE;
@@ -57,7 +57,7 @@ abstract contract BondBase is
     if (x > _ETH_PRECISION) revert("BondBase: Argument x out of bounds");
 
     uint256 curve = _ETH_PRECISION -
-      ((_ETH_PRECISION - x)**_POWER) /
+      ((_ETH_PRECISION - x) ** _POWER) /
       _POWER_PRECISION;
 
     uint256 result = (curve * _REMAINING_VALUE) / _ETH_PRECISION;

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 import {ERC20Base} from "./ERC20Base.sol";
@@ -29,11 +29,10 @@ contract ERC20Facet is ERC20Base, IERC20 {
    *
    * - `spender` cannot be the zero address.
    */
-  function approve(address spender, uint256 amount)
-    public
-    override
-    returns (bool)
-  {
+  function approve(
+    address spender,
+    uint256 amount
+  ) public override returns (bool) {
     address owner = msg.sender;
     _approve(owner, spender, amount);
     return true;
@@ -78,10 +77,10 @@ contract ERC20Facet is ERC20Base, IERC20 {
    *
    * - `spender` cannot be the zero address.
    */
-  function increaseAllowance(address spender, uint256 addedValue)
-    public
-    returns (bool)
-  {
+  function increaseAllowance(
+    address spender,
+    uint256 addedValue
+  ) public returns (bool) {
     address owner = msg.sender;
     _approve(owner, spender, allowance(owner, spender) + addedValue);
     return true;
@@ -101,10 +100,10 @@ contract ERC20Facet is ERC20Base, IERC20 {
    * - `spender` must have allowance for the caller of at least
    * `subtractedValue`.
    */
-  function decreaseAllowance(address spender, uint256 subtractedValue)
-    public
-    returns (bool)
-  {
+  function decreaseAllowance(
+    address spender,
+    uint256 subtractedValue
+  ) public returns (bool) {
     address owner = msg.sender;
     uint256 currentAllowance = allowance(owner, spender);
 
@@ -169,12 +168,10 @@ contract ERC20Facet is ERC20Base, IERC20 {
   /**
    * @dev See {IERC20-allowance}.
    */
-  function allowance(address owner, address spender)
-    public
-    view
-    override
-    returns (uint256)
-  {
+  function allowance(
+    address owner,
+    address spender
+  ) public view override returns (uint256) {
     return _allowance(owner, spender);
   }
 }

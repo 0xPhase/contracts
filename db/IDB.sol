@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -118,10 +118,9 @@ interface IDB {
   /// @dev digest() is not meant to be used on-chain due to the high gas cost
   /// @param opcode The opcode to execute
   /// @return result The execution result for every value
-  function digest(Opcode memory opcode)
-    external
-    view
-    returns (bytes32[] memory result);
+  function digest(
+    Opcode memory opcode
+  ) external view returns (bytes32[] memory result);
 
   /// @notice Gets the first value with the key
   /// @param key The key of the pair

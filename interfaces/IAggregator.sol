@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 interface IAggregator {
@@ -33,7 +33,9 @@ interface IAggregator {
   // getRoundData and latestRoundData should both raise "No data present"
   // if they do not have data to report, instead of returning unset values
   // which could be misinterpreted as actual reported values.
-  function getRoundData(uint80 _roundId)
+  function getRoundData(
+    uint80 _roundId
+  )
     external
     view
     returns (

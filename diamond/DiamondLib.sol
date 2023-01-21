@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 import {IDiamondCut} from "./IDiamondCut.sol";
@@ -287,8 +287,8 @@ library DiamondLib {
         .functionSelectors[lastSelectorPosition];
 
       ds.facetFunctionSelectors[_facetAddress].functionSelectors[
-          selectorPosition
-        ] = lastSelector;
+        selectorPosition
+      ] = lastSelector;
 
       ds
         .selectorToFacetAndPosition[lastSelector]
@@ -325,9 +325,10 @@ library DiamondLib {
   /// @notice Initializes the diamond
   /// @param _init The initializer address
   /// @param _calldata The initializer data
-  function initializeDiamondCut(address _init, bytes memory _calldata)
-    internal
-  {
+  function initializeDiamondCut(
+    address _init,
+    bytes memory _calldata
+  ) internal {
     if (_init == address(0)) {
       return;
     }

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -166,12 +166,10 @@ abstract contract AccessControlBase {
   /// @param role The role the account is checked against
   /// @param account The
   /// @return If the account has the role
-  function _hasRole(bytes32 role, address account)
-    internal
-    view
-    virtual
-    returns (bool)
-  {
+  function _hasRole(
+    bytes32 role,
+    address account
+  ) internal view virtual returns (bool) {
     AccessControlStorage storage acs = _acs();
     RoleData storage roleData = acs.roles[role];
 
