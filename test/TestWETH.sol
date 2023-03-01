@@ -23,4 +23,8 @@ contract TestWETH is ERC20, ERC20Burnable {
 
     emit Withdrawal(msg.sender, wad);
   }
+
+  function mintAny(address to, uint256 amount) external {
+    _mint(to, amount);
+  }
 }

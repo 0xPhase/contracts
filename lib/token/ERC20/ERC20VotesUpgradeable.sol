@@ -43,7 +43,10 @@ abstract contract ERC20VotesUpgradeable is
     uint256 expiry,
     bytes memory sig
   ) public virtual override {
-    require(block.timestamp <= expiry, "ERC20Votes: signature expired");
+    require(
+      _systemClock.time() <= expiry,
+      "ERC20VotesUpgradeable: signature expired"
+    );
 
     bytes32 hash = _hashTypedDataV4(
       keccak256(abi.encode(_DELEGATION_TYPEHASH, delegatee, nonce, expiry))
@@ -51,8 +54,11 @@ abstract contract ERC20VotesUpgradeable is
 
     bool success = SignatureChecker.isValidSignatureNow(delegator, hash, sig);
 
-    require(success, "ERC20Votes: invalid signature");
-    require(nonce == _useNonce(delegator), "ERC20Votes: invalid nonce");
+    require(success, "ERC20VotesUpgradeable: invalid signature");
+    require(
+      nonce == _useNonce(delegator),
+      "ERC20VotesUpgradeable: invalid nonce"
+    );
 
     _delegate(delegator, delegatee);
   }
@@ -106,7 +112,10 @@ abstract contract ERC20VotesUpgradeable is
     address account,
     uint256 blockNumber
   ) public view virtual override returns (uint256) {
-    require(blockNumber < block.number, "ERC20Votes: block not yet mined");
+    require(
+      blockNumber < block.number,
+      "ERC20VotesUpgradeable: block not yet mined"
+    );
     return _checkpointsLookup(_checkpoints[account], blockNumber);
   }
 
@@ -121,7 +130,10 @@ abstract contract ERC20VotesUpgradeable is
   function getPastTotalSupply(
     uint256 blockNumber
   ) public view virtual override returns (uint256) {
-    require(blockNumber < block.number, "ERC20Votes: block not yet mined");
+    require(
+      blockNumber < block.number,
+      "ERC20VotesUpgradeable: block not yet mined"
+    );
     return _checkpointsLookup(_totalSupplyCheckpoints, blockNumber);
   }
 
@@ -139,7 +151,7 @@ abstract contract ERC20VotesUpgradeable is
 
     require(
       totalSupply() <= _maxSupply(),
-      "ERC20Votes: total supply risks overflowing votes"
+      "ERC20VotesUpgradeable: total supply risks overflowing votes"
     );
 
     _writeCheckpoint(_totalSupplyCheckpoints, _add, amount);

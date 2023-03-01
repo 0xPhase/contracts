@@ -5,9 +5,10 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {AccessControlStorage, RoleData} from "./IAccessControl.sol";
+import {ElementBase} from "../Element/ElementBase.sol";
 import {IDB} from "../../db/IDB.sol";
 
-abstract contract AccessControlBase {
+abstract contract AccessControlBase is ElementBase {
   using EnumerableSet for EnumerableSet.Bytes32Set;
 
   bytes32 internal constant _ACCESS_CONTROL_STORAGE_SLOT =
@@ -130,12 +131,6 @@ abstract contract AccessControlBase {
     }
   }
 
-  /// @notice Sets the DB contract address
-  /// @param db_ The DB contract
-  function _initializeDB(IDB db_) internal {
-    _acs().db = db_;
-  }
-
   /// @notice Checks if the message sender has the role
   /// @param role The role to check against
   function _checkRole(bytes32 role) internal view virtual {
@@ -179,7 +174,7 @@ abstract contract AccessControlBase {
     uint256 length = roleData.keys.length();
 
     for (uint256 i = 0; i < length; i++) {
-      if (acs.db.hasPair(roleData.keys.at(i), addr)) return true;
+      if (_db().hasPair(roleData.keys.at(i), addr)) return true;
     }
 
     return false;

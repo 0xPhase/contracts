@@ -7,11 +7,6 @@ import {IDB} from "../../db/IDB.sol";
 
 contract AccessControlFacet is IAccessControl, AccessControlBase {
   /// @inheritdoc	IAccessControl
-  function db() external view override returns (IDB) {
-    return _acs().db;
-  }
-
-  /// @inheritdoc	IAccessControl
   /// @custom:protected onlyRole(getRoleAdmin(role))
   function grantRoleAccount(
     bytes32 role,

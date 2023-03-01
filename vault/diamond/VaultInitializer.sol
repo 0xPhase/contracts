@@ -5,8 +5,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ProxyInitializable} from "../../proxy/utils/ProxyInitializable.sol";
 import {ICreditAccount} from "../../account/ICreditAccount.sol";
+import {ISystemClock} from "../../clock/ISystemClock.sol";
 import {ITreasury} from "../../treasury/ITreasury.sol";
 import {VaultConstants} from "./VaultConstants.sol";
+import {IBalancer} from "../../yield/IBalancer.sol";
 import {IOracle} from "../../oracle/IOracle.sol";
 import {Storage} from "../../misc/Storage.sol";
 import {Manager} from "../../core/Manager.sol";
@@ -51,7 +53,7 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
     address adapter_,
     bytes memory adapterData_
   ) external initialize("v1") {
-    _initializeDB(db_);
+    _initializeElement(db_);
 
     address managerAddress = db_.getAddress("MANAGER");
 
@@ -60,11 +62,13 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
     _s.priceOracle = priceOracle_;
     _s.interest = interest_;
 
+    _s.systemClock = ISystemClock(db_.getAddress("SYSTEM_CLOCK"));
     _s.manager = Manager(managerAddress);
     _s.creditAccount = ICreditAccount(db_.getAddress("CREDIT_ACCOUNT"));
     _s.cash = ICash(db_.getAddress("CASH"));
     _s.treasury = ITreasury(db_.getAddress("TREASURY"));
     _s.bond = IBond(db_.getAddress("BOND"));
+    _s.balancer = IBalancer(db_.getAddress("BALANCER"));
 
     _s.maxMint = initialMaxMint_;
     _s.maxCollateralRatio = initialMaxCollateralRatio_;
@@ -76,7 +80,7 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
     _s.adapter = adapter_;
     _s.adapterData = adapterData_;
 
-    _s.lastDebtUpdate = block.timestamp;
+    _s.lastDebtUpdate = _s.systemClock.time();
 
     _grantRoleKey(VaultConstants.MANAGER_ROLE, keccak256("MANAGER"));
     _transferOwnership(managerAddress);

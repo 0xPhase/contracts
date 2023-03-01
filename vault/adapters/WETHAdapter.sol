@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {VaultBase} from "../diamond/VaultBase.sol";
 import {IWETH} from "../../interfaces/IWETH.sol";
+import {CallLib} from "../../lib/CallLib.sol";
 import {IAdapter} from "../IAdapter.sol";
 
 struct WETHAdapterData {
@@ -48,7 +49,8 @@ contract WETHAdapter is VaultBase, IAdapter {
 
     if (adapterData.isETH) {
       IWETH(address(_s.asset)).withdraw(amount);
-      payable(msg.sender).transfer(amount);
+
+      CallLib.callFunc(msg.sender, "", amount);
     } else {
       _s.asset.safeTransfer(msg.sender, amount);
     }

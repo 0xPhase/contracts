@@ -12,7 +12,6 @@ struct RoleData {
 }
 
 struct AccessControlStorage {
-  IDB db;
   mapping(bytes32 => RoleData) roles;
 }
 
@@ -41,10 +40,6 @@ interface IAccessControl {
   /// @param role The revoked role
   /// @param account The message sender
   function renounceRole(bytes32 role, address account) external;
-
-  /// @notice Gets the DB contract
-  /// @return The DB contract
-  function db() external view returns (IDB);
 
   /// @notice Checks if the account has the role
   /// @param role The role the account is checked against

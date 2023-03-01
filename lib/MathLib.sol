@@ -20,6 +20,36 @@ library MathLib {
     return b;
   }
 
+  /// @notice Returns the value inside the range
+  /// @param v The unsigned integer value
+  /// @param minimum The minimum unsigned integer
+  /// @param maximum The maximum unsigned integer
+  /// @return The value inside the range
+  function clamp(
+    uint256 v,
+    uint256 minimum,
+    uint256 maximum
+  ) internal pure returns (uint256) {
+    if (v > maximum) return maximum;
+    if (v < minimum) return minimum;
+    return v;
+  }
+
+  /// @notice Returns the value inside the range
+  /// @param v The integer value
+  /// @param minimum The minimum integer
+  /// @param maximum The maximum integer
+  /// @return The value inside the range
+  function clamp(
+    int256 v,
+    int256 minimum,
+    int256 maximum
+  ) internal pure returns (int256) {
+    if (v > maximum) return maximum;
+    if (v < minimum) return minimum;
+    return v;
+  }
+
   /// @notice Scales an integer from a decimal to another one
   /// @param amount The original amount
   /// @param fromDecimals The original decimals

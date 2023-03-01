@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {IAccessControl} from "../diamond/AccessControl/IAccessControl.sol";
 import {ICreditAccount} from "../account/ICreditAccount.sol";
+import {ISystemClock} from "../clock/ISystemClock.sol";
 import {IERC20} from "../diamond/ERC20/IERC20.sol";
 import {Manager} from "../core/Manager.sol";
 import {ICash} from "../core/ICash.sol";

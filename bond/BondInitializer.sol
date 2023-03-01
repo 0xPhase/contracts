@@ -21,9 +21,9 @@ contract BondInitializer is BondBase, ProxyInitializable {
     IDB db_,
     uint256 bondDuration_
   ) external initialize("V1") {
+    _initializeElement(db_);
+    _initializeClock();
     _initializeERC20("Phase Cash Bond", "zCASH");
-
-    _initializeDB(db_);
 
     address managerAddress = db_.getAddress("MANAGER");
 

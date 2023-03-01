@@ -4,8 +4,9 @@ pragma solidity ^0.8.17;
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IVaultGetters, UserInfo, UserYield, YieldInfo} from "../IVault.sol";
+import {ISystemClock} from "../../clock/ISystemClock.sol";
 import {ITreasury} from "../../treasury/ITreasury.sol";
+import {IVaultGetters, UserInfo} from "../IVault.sol";
 import {IOracle} from "../../oracle/IOracle.sol";
 import {Storage} from "../../misc/Storage.sol";
 import {Manager} from "../../core/Manager.sol";
@@ -50,20 +51,6 @@ contract VaultGettersFacet is VaultBase, IVaultGetters {
   }
 
   /// @inheritdoc	IVaultGetters
-  function yieldSources(
-    uint256 user
-  ) external view override returns (address[] memory sources) {
-    UserYield storage yield = _s.userYield[user];
-    uint256 length = yield.yieldSources.length();
-
-    sources = new address[](length);
-
-    for (uint256 i = 0; i < length; i++) {
-      sources[i] = yield.yieldSources.at(i);
-    }
-  }
-
-  /// @inheritdoc	IVaultGetters
   function price() external view override returns (uint256) {
     return _price();
   }
@@ -80,27 +67,8 @@ contract VaultGettersFacet is VaultBase, IVaultGetters {
     override
     returns (uint256 result)
   {
-    result = _s.asset.balanceOf(address(this));
-
-    for (uint256 i = 0; i < _s.yieldSources.length(); i++) {
-      result += IYield(_s.yieldSources.at(i)).totalBalance();
-    }
-  }
-
-  /// @inheritdoc	IVaultGetters
-  function allYieldSources()
-    external
-    view
-    override
-    returns (address[] memory sources)
-  {
-    uint256 length = _s.yieldSources.length();
-
-    sources = new address[](length);
-
-    for (uint256 i = 0; i < length; i++) {
-      sources[i] = _s.yieldSources.at(i);
-    }
+    return
+      _s.asset.balanceOf(address(this)) + _s.balancer.totalBalance(_s.asset);
   }
 
   /// @inheritdoc	IVaultGetters
@@ -111,10 +79,8 @@ contract VaultGettersFacet is VaultBase, IVaultGetters {
   }
 
   /// @inheritdoc	IVaultGetters
-  function yieldInfo(
-    address yieldSource
-  ) external view override returns (YieldInfo memory) {
-    return _s.yieldInfo[yieldSource];
+  function systemClock() external view override returns (ISystemClock) {
+    return _s.systemClock;
   }
 
   /// @inheritdoc	IVaultGetters

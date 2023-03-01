@@ -19,17 +19,20 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
   /// @inheritdoc	IVaultLiquidation
   function liquidateUser(
     uint256 user
-  ) external override freezeCheck updateDebt {
+  ) external override freezeCheck(true) updateDebt {
+    IERC20 asset = _s.asset;
+
+    if (_yieldDeposit(user) > 0) {
+      _s.userInfo[user].deposit += _s.balancer.fullWithdraw(asset, user);
+    }
+
     LiquidationInfo memory info = liquidationInfo(user);
 
     require(!info.solvent, "VaultLiquidationFacet: User is solvent");
 
-    _withdrawEverythingYield(user);
-
     UserInfo storage userInfo = _s.userInfo[user];
     ITreasury treasury = _s.treasury;
     ICash cash = _s.cash;
-    IERC20 asset = _s.asset;
 
     if (info.rebate > 0) {
       treasury.spend(
@@ -71,6 +74,8 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
       info.protocolFee,
       info.rebate
     );
+
+    _rebalanceYield(user);
   }
 
   /// @inheritdoc	IVaultLiquidation

@@ -19,7 +19,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     uint256 user,
     uint256 amount,
     bytes memory extraData
-  ) external payable override updateUser(user) freezeCheck updateDebt {
+  ) external payable override updateUser(user) freezeCheck(true) updateDebt {
     require(amount > 0, "VaultAccountingFacet: Cannot add 0 collateral");
 
     if (_s.adapter != address(0)) {
@@ -42,6 +42,8 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     _s.userInfo[user].deposit += amount;
 
     emit CollateralAdded(user, amount);
+
+    _rebalanceYield(user);
   }
 
   /// @inheritdoc	IVaultAccounting
@@ -54,19 +56,29 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     override
     ownerCheck(user, msg.sender)
     updateUser(user)
-    freezeCheck
+    freezeCheck(false)
     updateDebt
   {
-    UserInfo storage userInfo = _s.userInfo[user];
+    UserInfo storage info = _s.userInfo[user];
+    uint256 total = _deposit(user);
 
     require(
-      userInfo.deposit >= amount,
+      total >= amount,
       "VaultAccountingFacet: Removing too much collateral"
     );
 
-    userInfo.deposit -= amount;
+    if (info.deposit >= amount) {
+      info.deposit -= amount;
+    } else {
+      _s.balancer.withdraw(_s.asset, user, amount - info.deposit);
+      info.deposit = 0;
+    }
 
     require(_isSolvent(user), "VaultAccountingFacet: User no longer solvent");
+
+    emit CollateralRemoved(user, amount);
+
+    _rebalanceYield(user);
 
     if (_s.adapter != address(0)) {
       CallLib.delegateCallFunc(
@@ -81,8 +93,21 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     } else {
       _s.asset.safeTransfer(msg.sender, amount);
     }
+  }
 
-    emit CollateralRemoved(user, amount);
+  /// @inheritdoc	IVaultAccounting
+  function removeAllCollateral(
+    uint256 user,
+    bytes memory extraData
+  )
+    external
+    override
+    ownerCheck(user, msg.sender)
+    updateUser(user)
+    freezeCheck(false)
+    updateDebt
+  {
+    removeCollateral(user, _deposit(user), extraData);
   }
 
   /// @inheritdoc	IVaultAccounting
@@ -94,7 +119,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     override
     ownerCheck(user, msg.sender)
     updateUser(user)
-    freezeCheck
+    freezeCheck(false)
     updateDebt
   {
     _s.contextLocked = false;
@@ -111,7 +136,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     override
     ownerCheck(user, msg.sender)
     updateUser(user)
-    freezeCheck
+    freezeCheck(false)
     updateDebt
   {
     require(amount > 0, "VaultAccountingFacet: Cannot mint 0 CASH");
@@ -136,6 +161,8 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
           ((value - debt) * 1 ether) / (1 ether + borrowFee),
           false
         );
+
+        return;
       } else {
         revert("VaultAccountingFacet: Minting too much");
       }
@@ -167,7 +194,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     override
     ownerCheck(user, msg.sender)
     updateUser(user)
-    freezeCheck
+    freezeCheck(true)
     updateDebt
   {
     _s.contextLocked = false;
@@ -184,7 +211,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     override
     ownerCheck(user, msg.sender)
     updateUser(user)
-    freezeCheck
+    freezeCheck(true)
     updateDebt
   {
     require(shares > 0, "VaultAccountingFacet: Cannot repay 0 shares");

@@ -21,7 +21,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
     override
     ownerCheck(user, msg.sender)
     updateUser(user)
-    freezeCheck
+    freezeCheck(true)
     updateDebt
   {
     require(
@@ -39,11 +39,31 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
     emit HealthTargetSet(user, healthTarget);
   }
 
+  /// @inheritdoc	IVaultSetters
+  function setYieldPercent(
+    uint256 user,
+    uint256 yieldPercent
+  )
+    external
+    override
+    ownerCheck(user, msg.sender)
+    updateUser(user)
+    freezeCheck(true)
+    updateDebt
+  {
+    _s.userInfo[user].yieldPercent = yieldPercent;
+
+    emit YieldPercentSet(user, yieldPercent);
+
+    _rebalanceYield(user);
+  }
+
   /// @notice Sets the price oracle contract
   /// @param newPriceOracle The new price oracle contract
+  /// @custom:protected onlyRole(VaultConstants.MANAGER_ROLE)
   function setPriceOracle(
     IOracle newPriceOracle
-  ) external onlyRole(_DEFAULT_ADMIN_ROLE) {
+  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
     _s.priceOracle = newPriceOracle;
 
     emit PriceOracleSet(newPriceOracle);
@@ -51,6 +71,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
 
   /// @notice Sets the interest contract
   /// @param newInterest The new interest contract
+  /// @custom:protected onlyRole(VaultConstants.MANAGER_ROLE)
   function setInterest(
     IInterest newInterest
   ) external updateDebt onlyRole(VaultConstants.MANAGER_ROLE) {
@@ -61,6 +82,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
 
   /// @notice Sets the max collateral ratio
   /// @param newMaxCollateralRatio The new max collateral ratio
+  /// @custom:protected onlyRole(VaultConstants.MANAGER_ROLE)
   function setMaxCollateralRatio(
     uint256 newMaxCollateralRatio
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
@@ -71,6 +93,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
 
   /// @notice Sets the borrow fee
   /// @param newBorrowFee The new borrow fee
+  /// @custom:protected onlyRole(VaultConstants.MANAGER_ROLE)
   function setBorrowFee(
     uint256 newBorrowFee
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
@@ -81,6 +104,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
 
   /// @notice Sets the liquidation fee
   /// @param newLiquidationFee The liquidation fee
+  /// @custom:protected onlyRole(VaultConstants.MANAGER_ROLE)
   function setLiquidationFee(
     uint256 newLiquidationFee
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
@@ -91,6 +115,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
 
   /// @notice Sets the adapter address
   /// @param newAdapter The new adapter address
+  /// @custom:protected onlyRole(VaultConstants.MANAGER_ROLE)
   function setAdapter(
     address newAdapter
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
@@ -101,6 +126,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
 
   /// @notice Sets the adapter data
   /// @param newAdapterData The adapter data
+  /// @custom:protected onlyRole(VaultConstants.MANAGER_ROLE)
   function setAdapterData(
     bytes memory newAdapterData
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
@@ -111,6 +137,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
 
   /// @notice Sets the market state
   /// @param newState The new market state
+  /// @custom:protected onlyRole(VaultConstants.MANAGER_ROLE)
   function setMarketState(
     bool newState
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
@@ -121,39 +148,12 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
 
   /// @notice Increases the max amount of CASH that can be minted
   /// @param increase The amount to increase the cap
+  /// @custom:protected onlyRole(VaultConstants.MANAGER_ROLE)
   function increaseMaxMint(
     uint256 increase
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
     _s.maxMint += increase;
 
     emit MintIncreasedSet(_s.maxMint, increase);
-  }
-
-  /// @notice Adds the yield source as an option for users
-  /// @param source The yield source to add
-  function addYieldSource(
-    address source
-  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
-    require(
-      _s.yieldSources.add(source),
-      "VaultSettersFacet: Yield source already added"
-    );
-
-    _s.yieldInfo[source].enabled = true;
-  }
-
-  /// @notice Sets the yield source enabled state
-  /// @param source The yield source
-  /// @param state If yield source is enabled
-  function setYieldSourceState(
-    address source,
-    bool state
-  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
-    require(
-      _s.yieldSources.contains(source),
-      "VaultSettersFacet: Yield source does not exist"
-    );
-
-    _s.yieldInfo[source].enabled = state;
   }
 }

@@ -7,7 +7,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAccessControl} from "../diamond/AccessControl/IAccessControl.sol";
 import {IMulticall} from "../diamond/Multicall/IMulticall.sol";
 import {ICreditAccount} from "../account/ICreditAccount.sol";
+import {ISystemClock} from "../clock/ISystemClock.sol";
 import {ITreasury} from "../treasury/ITreasury.sol";
+import {IBalancer} from "../yield/IBalancer.sol";
 import {IOracle} from "../oracle/IOracle.sol";
 import {Storage} from "../misc/Storage.sol";
 import {Manager} from "../core/Manager.sol";
@@ -22,16 +24,7 @@ struct UserInfo {
   uint256 deposit;
   uint256 debtShares;
   uint256 healthTarget;
-}
-
-struct UserYield {
-  // User yield
-  EnumerableSet.AddressSet yieldSources;
-}
-
-struct YieldInfo {
-  // Yield info
-  bool enabled;
+  uint256 yieldPercent;
 }
 
 struct LiquidationInfo {
@@ -46,19 +39,18 @@ struct LiquidationInfo {
 struct VaultStorage {
   // Info
   mapping(uint256 => UserInfo) userInfo;
-  mapping(uint256 => UserYield) userYield;
-  mapping(address => YieldInfo) yieldInfo;
-  EnumerableSet.AddressSet yieldSources;
   // External contracts
   IERC20 asset;
   IOracle priceOracle;
   IInterest interest;
   Storage varStorage;
+  ISystemClock systemClock;
   Manager manager;
   ICreditAccount creditAccount;
   ICash cash;
   ITreasury treasury;
   IBond bond;
+  IBalancer balancer;
   // Vault variables
   uint256 maxMint;
   uint256 maxCollateralRatio;
@@ -98,6 +90,11 @@ interface IVaultAccounting {
     uint256 amount,
     bytes memory extraData
   ) external;
+
+  /// @notice Removes all collateral from the user
+  /// @param user The user id
+  /// @param extraData The extra adapter data
+  function removeAllCollateral(uint256 user, bytes memory extraData) external;
 
   /// @notice Mints CASH for the user
   /// @param user The user id
@@ -153,11 +150,6 @@ interface IVaultGetters {
   /// @return The vault deposit
   function pureDeposit(uint256 user) external view returns (uint256);
 
-  /// @notice Returns all yield sources used by the user
-  /// @param user The user id
-  /// @return The list of yield sources
-  function yieldSources(uint256 user) external view returns (address[] memory);
-
   /// @notice Returns the price of the underlying asset from the oracle
   /// @return The underlying asset price
   function price() external view returns (uint256);
@@ -166,25 +158,18 @@ interface IVaultGetters {
   /// @return The interest rate
   function getInterest() external view returns (uint256);
 
-  /// @notice Returns the total amount of collateral in the vault and invested in all yield sources
+  /// @notice Returns the total amount of collateral in the vault and invested in yield
   /// @return The amount of collateral
   function collectiveCollateral() external view returns (uint256);
-
-  /// @notice Returns all the available yield sources
-  /// @return The list of yield sources
-  function allYieldSources() external view returns (address[] memory);
 
   /// @notice Returns the user info for the user
   /// @param user The user id
   /// @return The user info
   function userInfo(uint256 user) external view returns (UserInfo memory);
 
-  /// @notice Returns the yield info for the source
-  /// @param yieldSource The yield source address
-  /// @return The yield info
-  function yieldInfo(
-    address yieldSource
-  ) external view returns (YieldInfo memory);
+  /// @notice Returns the system clock contract
+  /// @return The system clock contract
+  function systemClock() external view returns (ISystemClock);
 
   /// @notice Returns the manager contract
   /// @return The manager contract
@@ -277,37 +262,11 @@ interface IVaultSetters {
   /// @param user The user id
   /// @param healthTarget The health target
   function setHealthTarget(uint256 user, uint256 healthTarget) external;
-}
 
-interface IVaultYield {
-  /// @notice Deposits collateral into the yield source for the user
+  /// @notice Sets the yield percent for the user
   /// @param user The user id
-  /// @param yieldSource The yield source
-  /// @param amount The deposit amount
-  function depositYield(
-    uint256 user,
-    address yieldSource,
-    uint256 amount
-  ) external;
-
-  /// @notice Withdraws collateral from the yield source for the user
-  /// @param user The user id
-  /// @param yieldSource The yield source
-  /// @param amount The withdraw amount
-  function withdrawYield(
-    uint256 user,
-    address yieldSource,
-    uint256 amount
-  ) external;
-
-  /// @notice Withdraws all collateral from the yield source for the user
-  /// @param user The user id
-  /// @param yieldSource The yield source
-  function withdrawFullYield(uint256 user, address yieldSource) external;
-
-  /// @notice Withdraws all collateral from all yield sources for the user
-  /// @param user The user id
-  function withdrawEverythingYield(uint256 user) external;
+  /// @param yieldPercent The yield percent
+  function setYieldPercent(uint256 user, uint256 yieldPercent) external;
 }
 
 // solhint-disable-next-line no-empty-blocks
@@ -316,7 +275,6 @@ interface IVault is
   IVaultGetters,
   IVaultLiquidation,
   IVaultSetters,
-  IVaultYield,
   IAccessControl,
   IMulticall
 {

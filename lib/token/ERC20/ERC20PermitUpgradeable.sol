@@ -8,6 +8,8 @@ import {SignatureChecker} from "@matterlabs/signature-checker/contracts/Signatur
 
 import {EIP712Upgradeable} from "../../cryptography/EIP712Upgradeable.sol";
 import {IERC20PermitUpgradeable} from "./IERC20PermitUpgradeable.sol";
+import {ISystemClock} from "../../../clock/ISystemClock.sol";
+import {IDB} from "../../../db/IDB.sol";
 
 abstract contract ERC20PermitUpgradeable is
   Initializable,
@@ -20,6 +22,7 @@ abstract contract ERC20PermitUpgradeable is
   // solhint-disable-next-line var-name-mixedcase
   bytes32 private _PERMIT_TYPEHASH;
   mapping(address => CountersUpgradeable.Counter) private _nonces;
+  ISystemClock internal _systemClock;
 
   /**
    * @dev See {IERC20Permit-DOMAIN_SEPARATOR}.
@@ -39,7 +42,10 @@ abstract contract ERC20PermitUpgradeable is
     uint256 deadline,
     bytes memory sig
   ) public virtual override {
-    require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
+    require(
+      _systemClock.time() <= deadline,
+      "ERC20PermitUpgradeable: expired deadline"
+    );
 
     bytes32 structHash = keccak256(
       abi.encode(
@@ -56,7 +62,7 @@ abstract contract ERC20PermitUpgradeable is
 
     bool success = SignatureChecker.isValidSignatureNow(owner, hash, sig);
 
-    require(success, "ERC20Permit: invalid signature");
+    require(success, "ERC20PermitUpgradeable: invalid signature");
 
     _approve(owner, spender, value);
   }
@@ -76,9 +82,14 @@ abstract contract ERC20PermitUpgradeable is
    * It's a good idea to use the same `name` that is defined as the ERC20 token name.
    */
   // solhint-disable-next-line func-name-mixedcase
-  function __ERC20Permit_init(string memory name) internal onlyInitializing {
+  function __ERC20Permit_init(
+    string memory name,
+    IDB db
+  ) internal onlyInitializing {
     __EIP712_init(name, "1");
     __ERC20Permit_init_unchained(name);
+
+    _systemClock = ISystemClock(db.getAddress("SYSTEM_CLOCK"));
   }
 
   // solhint-disable-next-line func-name-mixedcase

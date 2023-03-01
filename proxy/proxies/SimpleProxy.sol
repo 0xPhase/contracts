@@ -28,12 +28,9 @@ contract SimpleProxy is Proxy {
   }
 
   /// @inheritdoc IProxy
-  function implementation()
-    public
-    view
-    override
-    returns (address _implementation)
-  {
+  function implementation(
+    bytes4
+  ) public view override returns (address _implementation) {
     _implementation = _IMPLEMENTATION_SLOT.getAddressSlot().value;
   }
 

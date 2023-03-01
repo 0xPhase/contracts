@@ -50,9 +50,9 @@ abstract contract CashV1Storage is
     __ERC20_init("Phase Dollar", "CASH");
     __ERC20Burnable_init();
     __ERC20Snapshot_init();
-    __ERC20Permit_init("Phase Dollar");
+    __ERC20Permit_init("Phase Dollar", db_);
 
-    _initializeDB(db_);
+    _initializeElement(db_);
 
     _grantRoleKey(DEFAULT_ADMIN_ROLE, keccak256("MANAGER"));
     _grantRoleKey(SNAPSHOT_ROLE, keccak256("DEV"));

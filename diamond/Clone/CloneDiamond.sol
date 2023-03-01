@@ -69,18 +69,17 @@ contract CloneDiamond is Proxy, OwnableBase {
   }
 
   /// @inheritdoc IProxy
-  function implementation()
-    public
-    view
-    override
-    returns (address _implementation)
-  {
+  function implementation(
+    bytes4 sig
+  ) public view override returns (address _implementation) {
     bytes32 slot = DIAMOND_TARGET_STORAGE_SLOT;
 
     // solhint-disable-next-line no-inline-assembly
     assembly {
       _implementation := sload(slot)
     }
+
+    _implementation = IDiamondLoupe(_implementation).facetAddress(sig);
   }
 
   /// @inheritdoc IProxy

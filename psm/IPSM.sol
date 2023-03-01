@@ -116,7 +116,7 @@ abstract contract PSMV1Storage is AccessControl, ProxyInitializable, IPSM {
     uint256 buyFee_,
     uint256 sellFee_
   ) external initialize("v1") {
-    _initializeDB(db_);
+    _initializeElement(db_);
 
     cash = ICash(db_.getAddress("CASH"));
     aavePool = aavePool_;

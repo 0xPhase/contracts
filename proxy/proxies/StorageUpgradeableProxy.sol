@@ -59,25 +59,22 @@ contract StorageUpgradeableProxy is ProxyOwnable, Proxy {
     bytes memory _newImplementationData
   ) external onlyOwner {
     if (_oldImplementationData.length > 0) {
-      CallLib.delegateCallFunc(implementation(), _oldImplementationData);
+      CallLib.delegateCallFunc(implementation(msg.sig), _oldImplementationData);
     }
 
     _setImplementation(_newStorage, _newSlot);
 
     if (_newImplementationData.length > 0) {
-      CallLib.delegateCallFunc(implementation(), _newImplementationData);
+      CallLib.delegateCallFunc(implementation(msg.sig), _newImplementationData);
     }
 
     emit Upgraded(_newStorage, _newSlot);
   }
 
   /// @inheritdoc IProxy
-  function implementation()
-    public
-    view
-    override
-    returns (address _implementation)
-  {
+  function implementation(
+    bytes4
+  ) public view override returns (address _implementation) {
     address _storage = _STORAGE_SLOT.getAddressSlot().value;
     bytes32 _slot = _SLOT_SLOT.getBytes32Slot().value;
 

@@ -48,25 +48,22 @@ contract AdminUpgradeableProxy is ProxyOwnable, Proxy {
     bytes memory _newImplementationData
   ) external onlyOwner {
     if (_oldImplementationData.length > 0) {
-      CallLib.delegateCallFunc(implementation(), _oldImplementationData);
+      CallLib.delegateCallFunc(implementation(msg.sig), _oldImplementationData);
     }
 
     _setImplementation(_newImplementation);
 
     if (_newImplementationData.length > 0) {
-      CallLib.delegateCallFunc(implementation(), _newImplementationData);
+      CallLib.delegateCallFunc(implementation(msg.sig), _newImplementationData);
     }
 
     emit Upgraded(_newImplementation);
   }
 
   /// @inheritdoc IProxy
-  function implementation()
-    public
-    view
-    override
-    returns (address _implementation)
-  {
+  function implementation(
+    bytes4
+  ) public view override returns (address _implementation) {
     _implementation = _IMPLEMENTATION_SLOT.getAddressSlot().value;
   }
 

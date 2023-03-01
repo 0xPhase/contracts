@@ -151,7 +151,7 @@ abstract contract TreasuryStorageV1 is
   /// @notice Initializes the treasury contract on version 1
   /// @param db_ The protocol DB
   function initializeTreasuryV1(IDB db_) public initialize("v1") {
-    _initializeDB(db_);
+    _initializeElement(db_);
 
     _grantRoleKey(DEFAULT_ADMIN_ROLE, keccak256("MANAGER"));
     _grantRoleKey(MANAGER_ROLE, keccak256("VAULT"));

@@ -2,11 +2,13 @@
 pragma solidity ^0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {AccessControlBase} from "../../diamond/AccessControl/AccessControlBase.sol";
-import {VaultStorage, UserInfo, UserYield, IVault} from "../IVault.sol";
+import {VaultStorage, UserInfo, IVault} from "../IVault.sol";
 import {OwnableBase} from "../../diamond/Ownable/OwnableBase.sol";
 import {ITreasury} from "../../treasury/ITreasury.sol";
 import {VaultConstants} from "./VaultConstants.sol";
@@ -20,6 +22,7 @@ import {IAdapter} from "../IAdapter.sol";
 
 abstract contract VaultBase is OwnableBase, AccessControlBase {
   using EnumerableSet for EnumerableSet.AddressSet;
+  using SafeERC20 for IERC20;
 
   VaultStorage internal _s;
 
@@ -49,6 +52,11 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   /// @param user The user id
   /// @param healthTarget The health target
   event HealthTargetSet(uint256 indexed user, uint256 healthTarget);
+
+  /// @notice Event emitted when the yield percent is set
+  /// @param user The user id
+  /// @param yieldPercent The yield percent
+  event YieldPercentSet(uint256 indexed user, uint256 yieldPercent);
 
   /// @notice Event emitted when the user is liquidated
   /// @param user The user id
@@ -114,23 +122,24 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   /// @notice Updates the current total debt
   modifier updateDebt() {
     if (_s.collectiveDebt == 0) {
-      _s.lastDebtUpdate = block.timestamp;
-    }
+      _s.lastDebtUpdate = _s.systemClock.time();
+    } else {
+      uint256 increase = _debtIncrease();
 
-    uint256 increase = _debtIncrease();
-
-    if (_mintFees(increase)) {
-      _s.collectiveDebt += increase;
-      _s.lastDebtUpdate = block.timestamp;
+      if (_mintFees(increase)) {
+        _s.collectiveDebt += increase;
+        _s.lastDebtUpdate = _s.systemClock.time();
+      }
     }
 
     _;
   }
 
   /// @notice Checks if the context or markets are locked and locks context until function is done
-  modifier freezeCheck() {
+  /// @param isSafe Indicates if it's safe to let users do this action, even while the markets are locked
+  modifier freezeCheck(bool isSafe) {
     require(!_s.contextLocked, "VaultBase: Context locked");
-    require(!_s.marketsLocked, "VaultBase: Markets locked");
+    require(!_s.marketsLocked || isSafe, "VaultBase: Markets locked");
 
     _s.contextLocked = true;
     _;
@@ -144,6 +153,11 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
 
     if (info.version == 0) {
       info.healthTarget = _s.healthTargetMinimum;
+      info.yieldPercent = 1 ether;
+
+      emit HealthTargetSet(user, info.healthTarget);
+      emit YieldPercentSet(user, info.yieldPercent);
+
       info.version++;
     }
 
@@ -164,19 +178,32 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
 
   // Shared functions
 
-  /// @notice Withdraws all collateral from all yield sources for the user
-  /// @param user The user id
-  function _withdrawEverythingYield(uint256 user) internal {
-    UserYield storage yields = _s.userYield[user];
+  function _rebalanceYield(uint256 user) internal {
     UserInfo storage info = _s.userInfo[user];
 
-    while (yields.yieldSources.length() > 0) {
-      address yield = yields.yieldSources.at(0);
-      uint256 amount = IYield(yield).receiveFullWithdraw(user);
+    uint256 yield = _yieldDeposit(user);
+    uint256 deposit = _pureDeposit(user);
+    uint256 total = deposit + yield;
 
+    if (total == 0) return;
+
+    uint256 targetYield = (total * info.yieldPercent) / 1 ether;
+    uint256 targetDeposit = (total * (1 ether - info.yieldPercent)) / 1 ether;
+
+    if (deposit > targetDeposit) {
+      uint256 amount = deposit - targetDeposit;
+
+      _s.asset.safeTransfer(address(_s.balancer), amount);
+      _s.balancer.deposit(_s.asset, user, amount);
+
+      info.deposit -= amount;
+    }
+
+    if (yield > targetYield) {
+      uint256 amount = yield - targetYield;
+
+      amount = _s.balancer.withdraw(_s.asset, user, amount);
       info.deposit += amount;
-
-      yields.yieldSources.remove(yield);
     }
   }
 
@@ -220,9 +247,10 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   /// @return The amount debt has increased
   function _debtIncrease() internal view returns (uint256) {
     uint256 lastDebtUpdate = _s.lastDebtUpdate;
+    uint256 time = _s.systemClock.getTime();
 
-    if (block.timestamp > lastDebtUpdate) {
-      uint256 difference = block.timestamp - lastDebtUpdate;
+    if (time > lastDebtUpdate) {
+      uint256 difference = time - lastDebtUpdate;
 
       uint256 increase = (_s.collectiveDebt * difference * _interest()) /
         (365.25 days * 1 ether);
@@ -293,12 +321,7 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   /// @param user The user id
   /// @return result The yield deposit
   function _yieldDeposit(uint256 user) internal view returns (uint256 result) {
-    UserYield storage yield = _s.userYield[user];
-    uint256 length = yield.yieldSources.length();
-
-    for (uint256 i = 0; i < length; i++) {
-      result += IYield(yield.yieldSources.at(i)).balance(user);
-    }
+    return _s.balancer.balanceOf(_s.asset, user);
   }
 
   /// @notice Returns the user's vault deposit in token amount

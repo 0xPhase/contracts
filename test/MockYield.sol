@@ -1,48 +1,56 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
-import {BaseYield} from "../yield/base/BaseYield.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import {YieldBase} from "../yield/yields/base/YieldBase.sol";
+import {ISystemClock} from "../clock/ISystemClock.sol";
 import {IVault} from "../vault/IVault.sol";
 import {TestUSDC} from "./TestUSDC.sol";
-import {Clock} from "../misc/Clock.sol";
 import {IDB} from "../db/IDB.sol";
 
-contract MockYield is BaseYield, Clock {
+contract MockYield is YieldBase {
+  ISystemClock public systemClock;
   uint256 public yieldRate;
   uint256 public lastTick;
 
-  constructor(IDB db_, IVault vault_, uint256 yieldRate_) {
-    _initializeSimpleYield(db_, vault_);
-    _updateTime();
+  constructor(IERC20 asset_, uint256 yieldRate_, IDB db_) {
+    systemClock = ISystemClock(db_.getAddress("SYSTEM_CLOCK"));
+
+    _initializeBaseYield(asset_, db_.getAddress("BALANCER"));
 
     yieldRate = yieldRate_;
-    lastTick = time();
+    lastTick = systemClock.time();
   }
 
   function totalBalance() public view override returns (uint256) {
     return asset.balanceOf(address(this)) + _yieldCreated();
   }
 
-  function _preDeposit(uint256, uint256) internal override {
+  function _onDeposit(uint256) internal override {
     _createYield();
   }
 
-  function _preWithdraw(uint256, uint256) internal override {
+  function _onWithdraw(uint256) internal override {
+    _createYield();
+  }
+
+  function _onFullWithdraw() internal override {
     _createYield();
   }
 
   function _createYield() internal {
     uint256 amount = _yieldCreated();
 
-    _updateTime();
-
     if (amount == 0) return;
+
+    systemClock.time();
 
     TestUSDC(address(asset)).mintAny(address(this), amount);
   }
 
   function _yieldCreated() internal view returns (uint256) {
-    uint256 difference = time() - lastTick;
+    uint256 difference = systemClock.getTime() - lastTick;
 
     if (difference == 0) return 0;
 

@@ -6,32 +6,33 @@ pragma solidity ^0.8.17;
 /// @dev A library to calculate share math with
 library ShareLib {
   /// @dev Calculate amount from shares
-  /// @param _shares Amount of vault shares
-  /// @param _totalShares Total shares for vault
-  /// @param _balance Total amount
-  /// @return _amount Calculated amount
+  /// @param shares Amount of vault shares
+  /// @param totalShares Total shares for vault
+  /// @param balance Total amount
+  /// @return amount Calculated amount
   function calculateAmount(
-    uint256 _shares,
-    uint256 _totalShares,
-    uint256 _balance
-  ) internal pure returns (uint256 _amount) {
-    if (_totalShares == 0) return 0;
+    uint256 shares,
+    uint256 totalShares,
+    uint256 balance
+  ) internal pure returns (uint256 amount) {
+    if (totalShares == 0 || shares == 0) return 0;
 
-    _amount = (_shares * _balance) / _totalShares;
+    amount = (shares * balance) / totalShares;
   }
 
   /// @dev Calculate shares from amount
-  /// @param _amount Amount
-  /// @param _totalShares Total shares for vault
-  /// @param _balance Total amount
-  /// @return _shares Calculated shares
+  /// @param amount Amount
+  /// @param totalShares Total shares for vault
+  /// @param balance Total amount
+  /// @return shares Calculated shares
   function calculateShares(
-    uint256 _amount,
-    uint256 _totalShares,
-    uint256 _balance
-  ) internal pure returns (uint256 _shares) {
-    if (_balance == 0) return 0;
+    uint256 amount,
+    uint256 totalShares,
+    uint256 balance
+  ) internal pure returns (uint256 shares) {
+    if (totalShares == 0) return amount;
+    if (balance == 0) return 0;
 
-    return (_amount * _totalShares) / _balance;
+    return (amount * totalShares) / balance;
   }
 }

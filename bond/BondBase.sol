@@ -6,8 +6,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {AccessControlBase} from "../diamond/AccessControl/AccessControlBase.sol";
 import {OwnableBase} from "../diamond/Ownable/OwnableBase.sol";
-import {ERC20Base} from "../diamond/ERC20/ERC20Base.sol";
 import {ClockBase} from "../diamond/Clock/ClockBase.sol";
+import {ERC20Base} from "../diamond/ERC20/ERC20Base.sol";
 import {BondStorage} from "./IBond.sol";
 
 abstract contract BondBase is

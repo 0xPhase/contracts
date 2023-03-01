@@ -5,6 +5,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ITreasury, TreasuryStorageV1} from "./ITreasury.sol";
+import {CallLib} from "../lib/CallLib.sol";
 
 contract TreasuryV1 is TreasuryStorageV1 {
   using SafeERC20 for IERC20;
@@ -130,7 +131,7 @@ contract TreasuryV1 is TreasuryStorageV1 {
     );
 
     if (token == ETH_ADDRESS) {
-      payable(to).transfer(amount);
+      CallLib.callFunc(to, "", amount);
     } else {
       IERC20(token).safeTransfer(to, amount);
     }

@@ -21,7 +21,7 @@ abstract contract Proxy is IProxy {
   /// @dev Function to handle delegating the proxy call to target implementation
   /// returns This function will return whatever the implementation call returns
   function _fallback() internal {
-    address _impl = IProxy(this).implementation();
+    address _impl = IProxy(this).implementation(msg.sig);
 
     require(_impl != address(0), "Proxy: Implementation not set");
 

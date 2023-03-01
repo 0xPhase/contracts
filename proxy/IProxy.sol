@@ -14,8 +14,11 @@ interface IProxy {
   fallback() external payable;
 
   /// @dev Tells the address of the implementation where every call will be delegated.
-  /// @return _implementation address of the implementation to which it will be delegated
-  function implementation() external view returns (address _implementation);
+  /// @param sig The signature of the call
+  /// @return _implementation The address of the implementation to which it will be delegated
+  function implementation(
+    bytes4 sig
+  ) external view returns (address _implementation);
 
   /// @dev ERC897
   /// @return _type whether it is a forwarding (1) or an upgradeable (2) proxy
