@@ -17,7 +17,7 @@ struct Asset {
 }
 
 struct Yield {
-  IYield yield;
+  IYield yieldSrc;
   uint256 start;
   uint256 apr;
   uint256 lastUpdate;
@@ -26,7 +26,7 @@ struct Yield {
 }
 
 struct Offset {
-  IYield yield;
+  IYield yieldSrc;
   uint256 apr;
   uint256 offset;
   bool isPositive;
@@ -43,9 +43,12 @@ interface IBalancer {
 
   function fullWithdraw(IERC20 asset, uint256 user) external returns (uint256);
 
+  function assetAPR(IERC20 asset) external view returns (uint256);
+
   /// @notice Gets the time weighted average APR for the yield
+  /// @param yieldSrc The yield source
   /// @return The time weighted average APR
-  function twaa(IYield yield) external view returns (uint256);
+  function twaa(IYield yieldSrc) external view returns (uint256);
 
   function totalBalance(IERC20 asset) external view returns (uint256);
 
@@ -75,7 +78,7 @@ abstract contract BalancerV1Storage is
   bytes32 public constant DEV_ROLE = keccak256("DEV_ROLE");
   bytes32 public constant VAULT_ROLE = keccak256("VAULT_ROLE");
 
-  uint256 public constant APR_DEFAULT = 1 ether;
+  uint256 public constant APR_DEFAULT = 0.01 ether;
   uint256 public constant APR_MIN_TIME = 0.2 days;
   uint256 public constant APR_DURATION = 14 days;
 

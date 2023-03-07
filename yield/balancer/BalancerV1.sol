@@ -45,35 +45,35 @@ contract BalancerV1 is BalancerV1Storage {
       if (acc == 0) return;
 
       Offset memory offset = arr[i];
-      Yield storage yld = _yield[offset.yield];
+      Yield storage yield = _yield[offset.yieldSrc];
 
       if (offset.isPositive) continue;
-      if (!yld.state) continue;
+      if (!yield.state) continue;
 
-      _updateAPR(offset.yield);
+      _updateAPR(offset.yieldSrc);
 
       uint256 yieldAmount = MathLib.min(offset.offset, acc);
 
-      asset.safeTransfer(address(offset.yield), yieldAmount);
-      offset.yield.deposit(yieldAmount);
+      asset.safeTransfer(address(offset.yieldSrc), yieldAmount);
+      offset.yieldSrc.deposit(yieldAmount);
 
-      yld.lastDeposit = offset.yield.totalBalance();
+      yield.lastDeposit = offset.yieldSrc.totalBalance();
 
       acc -= yieldAmount;
     }
 
     for (uint256 i = 0; i < arr.length; i++) {
       Offset memory offset = arr[i];
-      Yield storage yld = _yield[offset.yield];
+      Yield storage yield = _yield[offset.yieldSrc];
 
-      if (!yld.state) continue;
+      if (!yield.state) continue;
 
-      _updateAPR(offset.yield);
+      _updateAPR(offset.yieldSrc);
 
-      asset.safeTransfer(address(offset.yield), acc);
-      offset.yield.deposit(acc);
+      asset.safeTransfer(address(offset.yieldSrc), acc);
+      offset.yieldSrc.deposit(acc);
 
-      yld.lastDeposit = offset.yield.totalBalance();
+      yield.lastDeposit = offset.yieldSrc.totalBalance();
 
       return;
     }
@@ -116,18 +116,18 @@ contract BalancerV1 is BalancerV1Storage {
       }
 
       Offset memory offset = arr[i];
-      Yield storage yld = _yield[offset.yield];
+      Yield storage yield = _yield[offset.yieldSrc];
 
       if (!offset.isPositive) continue;
-      if (!yld.state) continue;
+      if (!yield.state) continue;
 
-      _updateAPR(offset.yield);
+      _updateAPR(offset.yieldSrc);
 
       uint256 yieldAmount = MathLib.min(offset.offset, acc);
 
-      offset.yield.withdraw(yieldAmount);
+      offset.yieldSrc.withdraw(yieldAmount);
 
-      yld.lastDeposit = offset.yield.totalBalance();
+      yield.lastDeposit = offset.yieldSrc.totalBalance();
 
       acc -= yieldAmount;
     }
@@ -139,22 +139,22 @@ contract BalancerV1 is BalancerV1Storage {
       }
 
       Offset memory offset = arr[i];
-      Yield storage yld = _yield[offset.yield];
-      uint256 balance = offset.yield.totalBalance();
+      Yield storage yield = _yield[offset.yieldSrc];
+      uint256 balance = offset.yieldSrc.totalBalance();
 
-      if (!yld.state) continue;
+      if (!yield.state) continue;
 
-      _updateAPR(offset.yield);
+      _updateAPR(offset.yieldSrc);
 
       uint256 yieldAmount = MathLib.min(balance, acc);
 
       if (yieldAmount == balance) {
-        offset.yield.fullWithdraw();
+        offset.yieldSrc.fullWithdraw();
       } else {
-        offset.yield.withdraw(yieldAmount);
+        offset.yieldSrc.withdraw(yieldAmount);
       }
 
-      yld.lastDeposit = offset.yield.totalBalance();
+      yield.lastDeposit = offset.yieldSrc.totalBalance();
 
       acc -= yieldAmount;
     }
@@ -172,33 +172,41 @@ contract BalancerV1 is BalancerV1Storage {
   }
 
   /// @custom:protected onlyRole(MANAGER_ROLE)
-  function addYield(IYield yield) external onlyRole(MANAGER_ROLE) {
-    Yield storage yld = _yield[yield];
-    IERC20 asset = yield.asset();
+  function addYield(IYield yieldSrc) external onlyRole(MANAGER_ROLE) {
+    Yield storage yield = _yield[yieldSrc];
+    IERC20 asset = yieldSrc.asset();
     Asset storage ast = _asset[asset];
 
-    require(ast.yields.add(address(yield)), "BalancerV1: Yield already exists");
+    require(
+      ast.yields.add(address(yieldSrc)),
+      "BalancerV1: Yield already exists"
+    );
 
     _assets.add(address(asset));
-    _yields.add(address(yield));
+    _yields.add(address(yieldSrc));
 
-    yld.yield = yield;
-    yld.start = systemClock.time();
-    yld.lastUpdate = yld.start;
-    yld.state = true;
+    yield.yieldSrc = yieldSrc;
+    yield.start = systemClock.time();
+    yield.lastUpdate = yield.start;
+    yield.state = true;
   }
 
   /// @custom:protected onlyRole(DEV_ROLE)
-  function setYieldState(IYield yield, bool state) external onlyRole(DEV_ROLE) {
-    Yield storage yld = _yield[yield];
+  function setYieldState(
+    IYield yieldSrc,
+    bool state
+  ) external onlyRole(DEV_ROLE) {
+    Yield storage yield = _yield[yieldSrc];
 
-    yld.state = state;
+    yield.state = state;
+
+    _updateAPR(yieldSrc);
 
     if (!state) {
-      yield.fullWithdraw();
+      yieldSrc.fullWithdraw();
     }
 
-    _updateAPR(yield);
+    _updateAPR(yieldSrc);
   }
 
   /// @inheritdoc	IBalancer
@@ -251,12 +259,12 @@ contract BalancerV1 is BalancerV1Storage {
     for (uint256 i = 0; i < infoLength; i++) {
       if (!infos[i].state) continue;
 
-      IYield yield = IYield(infos[i].yield);
+      IYield yield = IYield(infos[i].yieldSrc);
       uint256 apr = twaa(yield);
       totalAPR += apr;
 
       arr[i].apr = apr;
-      arr[i].yield = yield;
+      arr[i].yieldSrc = yield;
     }
 
     uint256 averagePerAPR = (totalBalance(asset) * 1 ether) / totalAPR;
@@ -269,7 +277,7 @@ contract BalancerV1 is BalancerV1Storage {
         continue;
       }
 
-      uint256 yieldBalance = IYield(infos[i].yield).totalBalance();
+      uint256 yieldBalance = IYield(infos[i].yieldSrc).totalBalance();
       uint256 targetBalance = (averagePerAPR * arr[i].apr) / 1 ether;
 
       if (yieldBalance >= targetBalance) {
@@ -289,16 +297,49 @@ contract BalancerV1 is BalancerV1Storage {
   }
 
   /// @inheritdoc	IBalancer
-  function twaa(IYield yield) public view override returns (uint256) {
-    Yield storage info = _yield[yield];
+  function assetAPR(IERC20 asset) external view returns (uint256 apr) {
+    EnumerableSet.AddressSet storage set = _asset[asset].yields;
+    uint256 length = set.length();
 
-    if (
-      info.start == 0 || (systemClock.getTime() - info.start) < APR_MIN_TIME
-    ) {
+    if (length == 0) {
+      return 0;
+    }
+
+    uint256 total = 0;
+
+    for (uint256 i = 0; i < length; i++) {
+      IYield yieldSrc = IYield(set.at(i));
+
+      if (!_yield[yieldSrc].state) continue;
+
+      uint256 curTotal = yieldSrc.totalBalance();
+
+      if (curTotal == 0) continue;
+
+      total += curTotal;
+      apr += curTotal * twaa(yieldSrc);
+    }
+
+    if (total > 0) {
+      apr /= total;
+    } else {
+      apr = 0;
+    }
+  }
+
+  /// @inheritdoc	IBalancer
+  function twaa(IYield yieldSrc) public view override returns (uint256) {
+    Yield storage info = _yield[yieldSrc];
+
+    if (info.start == 0) {
+      return 0;
+    }
+
+    if ((systemClock.getTime() - info.start) < APR_MIN_TIME) {
       return APR_DEFAULT;
     }
 
-    return _calcAPR(yield);
+    return _calcAPR(yieldSrc);
   }
 
   /// @inheritdoc	IBalancer
@@ -332,48 +373,48 @@ contract BalancerV1 is BalancerV1Storage {
     }
   }
 
-  function _updateAPR(IYield yield) internal {
-    Yield storage yld = _yield[yield];
+  function _updateAPR(IYield yieldSrc) internal {
+    Yield storage yield = _yield[yieldSrc];
 
     uint256 time = systemClock.time();
-    uint256 total = yield.totalBalance();
+    uint256 total = yieldSrc.totalBalance();
 
     if (total == 0) {
-      yld.apr = 0;
-      yld.start = time;
-      yld.lastUpdate = time;
-      yld.lastDeposit = total;
+      yield.apr = 0;
+      yield.start = time;
+      yield.lastUpdate = time;
+      yield.lastDeposit = total;
 
       return;
     }
 
-    yld.apr = _calcAPR(yield);
-    yld.lastUpdate = time;
-    yld.lastDeposit = total;
+    yield.apr = _calcAPR(yieldSrc);
+    yield.lastUpdate = time;
+    yield.lastDeposit = total;
   }
 
-  function _calcAPR(IYield yield) internal view returns (uint256) {
-    uint256 totalBal = yield.totalBalance();
+  function _calcAPR(IYield yieldSrc) internal view returns (uint256) {
+    uint256 totalBal = yieldSrc.totalBalance();
 
     if (totalBal == 0) return 0;
 
-    Yield storage yld = _yield[yield];
+    Yield storage yield = _yield[yieldSrc];
     uint256 time = systemClock.getTime();
 
-    uint256 start = MathLib.max(time - APR_DURATION, yld.start);
-    uint256 update = MathLib.max(time - APR_DURATION, yld.lastUpdate);
+    uint256 start = MathLib.max(time - APR_DURATION, yield.start);
+    uint256 update = MathLib.max(time - APR_DURATION, yield.lastUpdate);
 
-    if (time == update) return yld.apr;
+    if (time == update) return yield.apr;
 
     uint256 total = time - start;
     uint256 left = update - start;
     uint256 right = time - update;
 
-    uint256 increase = totalBal - yld.lastDeposit;
+    uint256 increase = totalBal - yield.lastDeposit;
 
-    uint256 rightAPR = (increase * right * 1 ether) /
-      (yld.lastDeposit * 365.25 days);
+    uint256 rightAPR = (increase * 365.25 days * 1 ether) /
+      (yield.lastDeposit * right);
 
-    return ((left * yld.apr) + (right * rightAPR)) / total;
+    return ((left * yield.apr) + (right * rightAPR)) / total;
   }
 }

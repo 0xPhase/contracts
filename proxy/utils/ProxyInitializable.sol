@@ -21,7 +21,7 @@ abstract contract ProxyInitializable {
     StorageSlot.BooleanSlot storage versionSlot = _versionSlot(version)
       .getBooleanSlot();
 
-    if (!disabledSlot.value && !versionSlot.value) {
+    if (!versionSlot.value) {
       _;
 
       emit VersionInitialized(version);

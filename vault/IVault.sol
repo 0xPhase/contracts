@@ -101,12 +101,6 @@ interface IVaultAccounting {
   /// @param amount Yhe amount to mint
   function mintUSD(uint256 user, uint256 amount) external;
 
-  /// @notice Mints CASH for the user
-  /// @param user The user id
-  /// @param amount The amount to mint
-  /// @param useMax If minting too much, mint max allowed instead
-  function mintUSD(uint256 user, uint256 amount, bool useMax) external;
-
   /// @notice Repays CASH for the user
   /// @param user The user id
   /// @param shares The amount of shares to repay

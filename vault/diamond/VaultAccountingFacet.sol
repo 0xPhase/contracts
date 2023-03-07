@@ -122,65 +122,35 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     freezeCheck(false)
     updateDebt
   {
-    _s.contextLocked = false;
-    mintUSD(user, amount, false);
-  }
-
-  /// @inheritdoc	IVaultAccounting
-  function mintUSD(
-    uint256 user,
-    uint256 amount,
-    bool useMax
-  )
-    public
-    override
-    ownerCheck(user, msg.sender)
-    updateUser(user)
-    freezeCheck(false)
-    updateDebt
-  {
     require(amount > 0, "VaultAccountingFacet: Cannot mint 0 CASH");
 
     uint256 value = _depositValueUser(user);
     uint256 debt = _debtValueUser(user);
-    uint256 borrowFee = _s.borrowFee;
-    uint256 fee = (amount * borrowFee) / 1 ether;
-    uint256 borrow = amount + fee;
+    uint256 fee = ((amount * 1 ether) / (1 ether + _s.borrowFee));
+    uint256 borrow = amount - fee;
 
     require(
-      debt + borrow >= _stepMinDeposit(),
+      debt + amount >= _stepMinDeposit(),
       "VaultAccountingFacet: Has to borrow more than minimum"
     );
 
-    if (value < debt + borrow) {
-      if (useMax && value > debt) {
-        _s.contextLocked = false;
-
-        mintUSD(
-          user,
-          ((value - debt) * 1 ether) / (1 ether + borrowFee),
-          false
-        );
-
-        return;
-      } else {
-        revert("VaultAccountingFacet: Minting too much");
-      }
-    }
+    require(value >= debt + amount, "VaultAccountingFacet: Minting too much");
 
     _mintFees(fee);
 
     uint256 totalDebtShares = _s.totalDebtShares;
 
-    uint256 shares = totalDebtShares == 0
-      ? borrow
-      : ShareLib.calculateShares(borrow, totalDebtShares, _s.collectiveDebt);
+    uint256 shares = ShareLib.calculateShares(
+      amount,
+      totalDebtShares,
+      _s.collectiveDebt
+    );
 
-    _s.collectiveDebt += borrow;
+    _s.collectiveDebt += amount;
     _s.userInfo[user].debtShares += shares;
     _s.totalDebtShares += shares;
 
-    _s.cash.mintManager(msg.sender, amount);
+    _s.cash.mintManager(msg.sender, borrow);
 
     emit USDMinted(user, amount, fee);
   }
