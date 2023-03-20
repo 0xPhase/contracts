@@ -35,4 +35,9 @@ contract BondGettersFacet is BondBase, IBondGetters {
   function bondDuration() external view override returns (uint256) {
     return _s.bondDuration;
   }
+
+  /// @inheritdoc	IBondGetters
+  function totalBalance() external view override returns (uint256) {
+    return _totalBalance();
+  }
 }

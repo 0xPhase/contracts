@@ -11,7 +11,7 @@ contract CashV1 is CashV1Storage {
   }
 
   /// @inheritdoc	ICash
-  /// @custom:protected onlyRole(SNAPSHOT_ROLE)
+  /// @custom:protected onlyRole(MANAGER_ROLE)
   function mintManager(
     address to,
     uint256 amount
@@ -20,11 +20,21 @@ contract CashV1 is CashV1Storage {
   }
 
   /// @inheritdoc	ICash
-  /// @custom:protected onlyRole(SNAPSHOT_ROLE)
+  /// @custom:protected onlyRole(MANAGER_ROLE)
   function burnManager(
     address from,
     uint256 amount
   ) external override onlyRole(MANAGER_ROLE) {
     _burn(from, amount);
+  }
+
+  /// @inheritdoc	ICash
+  /// @custom:protected onlyRole(MANAGER_ROLE)
+  function transferManager(
+    address from,
+    address to,
+    uint256 amount
+  ) external override onlyRole(MANAGER_ROLE) {
+    _transfer(from, to, amount);
   }
 }

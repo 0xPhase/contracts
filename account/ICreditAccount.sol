@@ -15,19 +15,15 @@ interface ICreditAccount {
   /// @notice Event emitted when a credit account is created
   /// @param creator The account that created the credit account
   /// @param tokenId The id of the created account
-  /// @param ownerIndex The index of the token for the account creator
-  event CreditAccountCreated(
-    address indexed creator,
-    uint256 tokenId,
-    uint256 ownerIndex
-  );
+  event CreditAccountCreated(address indexed creator, uint256 tokenId);
 
-  /// @notice Creates a new credit account
-  /// @return tokenId The id of the created account
-  /// @return ownerIndex The index of the token for the account creator
-  function createAccount()
-    external
-    returns (uint256 tokenId, uint256 ownerIndex);
+  /// @notice Gets or creates the user's account
+  /// @return tokenId The id of the account
+  function getAccount(address owner) external returns (uint256 tokenId);
+
+  /// @notice Gets the user's account or returns 0 if no account present
+  /// @return tokenId The id of the account
+  function viewAccount(address owner) external view returns (uint256 tokenId);
 }
 
 abstract contract CreditAccountStorageV1 is
@@ -81,7 +77,7 @@ abstract contract CreditAccountStorageV1 is
     address to,
     uint256 tokenId,
     uint256 batchSize
-  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) {
+  ) internal virtual override(ERC721Upgradeable, ERC721EnumerableUpgradeable) {
     super._beforeTokenTransfer(from, to, tokenId, batchSize);
   }
 }

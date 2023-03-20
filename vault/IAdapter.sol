@@ -12,7 +12,7 @@ interface IAdapter {
     uint256 amount,
     uint256 value,
     bytes memory data
-  ) external;
+  ) external payable;
 
   /// @notice Ran when the user withdraws from a vault with the adapter
   /// @param user The user id

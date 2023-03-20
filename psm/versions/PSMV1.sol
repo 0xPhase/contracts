@@ -38,11 +38,11 @@ contract PSMV1 is PSMV1Storage {
     cash.mintManager(msg.sender, userAmount);
     cash.mintManager(bondAddress, fee);
 
-    underlying.safeIncreaseAllowance(address(aavePool), amount);
+    underlying.safeIncreaseAllowance(address(vault), amount);
 
-    aavePool.deposit(address(underlying), amount, address(this), 0);
+    vault.addCollateral(creditAccount, amount, "");
 
-    totalTraded += fullAmount;
+    totalTraded += amount;
     totalFees += fee;
 
     emit CashBought(msg.sender, fee, userAmount, fullAmount);
@@ -62,9 +62,10 @@ contract PSMV1 is PSMV1Storage {
 
     cash.burnManager(msg.sender, fullAmount);
     cash.mintManager(bondAddress, fullFee);
-    aavePool.withdraw(address(underlying), amount - fee, msg.sender);
 
-    totalTraded += fullAmount;
+    vault.removeCollateral(creditAccount, amount - fee, "");
+
+    totalTraded += amount;
     totalFees += fullFee;
 
     emit CashSold(msg.sender, fee, fullAmount, fullUserAmount);
@@ -88,7 +89,6 @@ contract PSMV1 is PSMV1Storage {
 
   /// @inheritdoc	IPSM
   function totalBalance() public view override returns (uint256) {
-    return
-      MathLib.scaleAmount(aToken.balanceOf(address(this)), _aTokenDecimals, 18);
+    return vault.deposit(creditAccount);
   }
 }

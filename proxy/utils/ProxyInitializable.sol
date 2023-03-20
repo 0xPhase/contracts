@@ -16,12 +16,10 @@ abstract contract ProxyInitializable {
     StorageSlot.BooleanSlot storage disabledSlot = _disabledSlot()
       .getBooleanSlot();
 
-    require(!disabledSlot.value, "ProxyInitializable: Initialization disabled");
-
     StorageSlot.BooleanSlot storage versionSlot = _versionSlot(version)
       .getBooleanSlot();
 
-    if (!versionSlot.value) {
+    if (!disabledSlot.value && !versionSlot.value) {
       _;
 
       emit VersionInitialized(version);

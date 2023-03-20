@@ -16,10 +16,19 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
   /// @inheritdoc	IVaultAccounting
   function addCollateral(
+    uint256 amount,
+    bytes memory extraData
+  ) external payable {
+    addCollateral(_s.creditAccount.getAccount(msg.sender), amount, extraData);
+  }
+
+  /// @inheritdoc	IVaultAccounting
+  function addCollateral(
     uint256 user,
     uint256 amount,
     bytes memory extraData
-  ) external payable override updateUser(user) freezeCheck(true) updateDebt {
+  ) public payable override updateUser(user) freezeCheck(true) updateDebt {
+    require(user > 0, "VaultAccountingFacet: Non existent user");
     require(amount > 0, "VaultAccountingFacet: Cannot add 0 collateral");
 
     if (_s.adapter != address(0)) {
@@ -126,7 +135,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
     uint256 value = _depositValueUser(user);
     uint256 debt = _debtValueUser(user);
-    uint256 fee = ((amount * 1 ether) / (1 ether + _s.borrowFee));
+    uint256 fee = amount - ((amount * 1 ether) / (1 ether + _s.borrowFee));
     uint256 borrow = amount - fee;
 
     require(
@@ -138,11 +147,9 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
     _mintFees(fee);
 
-    uint256 totalDebtShares = _s.totalDebtShares;
-
     uint256 shares = ShareLib.calculateShares(
       amount,
-      totalDebtShares,
+      _s.totalDebtShares,
       _s.collectiveDebt
     );
 
@@ -200,7 +207,8 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
     // solhint-disable-next-line reason-string
     require(
-      _debtValue(userShares - shares) >= _stepMinDeposit(),
+      _debtValue(userShares - shares) >= _stepMinDeposit() ||
+        (userShares - shares) == 0,
       "VaultAccountingFacet: Has to repay to zero or have more debt than minimum"
     );
 

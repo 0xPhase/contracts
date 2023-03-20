@@ -9,12 +9,12 @@ import {IWETH} from "../../interfaces/IWETH.sol";
 import {CallLib} from "../../lib/CallLib.sol";
 import {IAdapter} from "../IAdapter.sol";
 
-struct WETHAdapterData {
-  bool isETH;
-}
-
 contract WETHAdapter is VaultBase, IAdapter {
   using SafeERC20 for IERC20;
+
+  struct WETHAdapterData {
+    bool isETH;
+  }
 
   /// @inheritdoc	IAdapter
   function deposit(
@@ -22,7 +22,7 @@ contract WETHAdapter is VaultBase, IAdapter {
     uint256 amount,
     uint256 value,
     bytes memory data
-  ) external override {
+  ) external payable override {
     WETHAdapterData memory adapterData = abi.decode(data, (WETHAdapterData));
 
     if (adapterData.isETH) {
@@ -50,7 +50,7 @@ contract WETHAdapter is VaultBase, IAdapter {
     if (adapterData.isETH) {
       IWETH(address(_s.asset)).withdraw(amount);
 
-      CallLib.callFunc(msg.sender, "", amount);
+      payable(msg.sender).call{value: amount}("");
     } else {
       _s.asset.safeTransfer(msg.sender, amount);
     }

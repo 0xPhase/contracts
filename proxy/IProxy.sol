@@ -6,7 +6,6 @@ pragma solidity ^0.8.17;
 /// @dev Allows for functionality to be loaded from another contract while running in local storage space
 interface IProxy {
   /// @dev Function to receive ETH
-  // solhint-disable-next-line no-empty-blocks
   receive() external payable;
 
   /// @dev Fallback function to catch proxy calls

@@ -72,6 +72,14 @@ struct VaultStorage {
 
 interface IVaultAccounting {
   /// @notice Adds collateral for the user
+  /// @param amount The amount to add
+  /// @param extraData The extra adapter data
+  function addCollateral(
+    uint256 amount,
+    bytes memory extraData
+  ) external payable;
+
+  /// @notice Gives collateral for the user
   /// @param user The user id
   /// @param amount The amount to add
   /// @param extraData The extra adapter data

@@ -5,8 +5,10 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
+import {ICreditAccount} from "../account/ICreditAccount.sol";
 import {AccessControl} from "../core/AccessControl.sol";
 import {ISystemClock} from "../clock/ISystemClock.sol";
+import {ITreasury} from "../treasury/ITreasury.sol";
 import {IYield} from "./IYield.sol";
 import {IDB} from "../db/IDB.sol";
 
@@ -33,6 +35,10 @@ struct Offset {
 }
 
 interface IBalancer {
+  event YieldAPRSet(IERC20 indexed asset, uint256 timestamp, uint256 apr);
+
+  event PerformanceFeeSet(uint256 apr);
+
   function deposit(IERC20 asset, uint256 user, uint256 amount) external;
 
   function withdraw(
@@ -88,16 +94,30 @@ abstract contract BalancerV1Storage is
   EnumerableSet.AddressSet internal _yields;
 
   ISystemClock public systemClock;
+  ITreasury public treasury;
+  uint256 public performanceFee;
+  uint256 public feeAccount;
 
   /// @notice Initializes the balancer contract on version 1
   /// @param db_ The protocol DB
-  function initializeBalancerV1(IDB db_) external initialize("v1") {
+  function initializeBalancerV1(
+    IDB db_,
+    uint256 initialPerformanceFee_
+  ) external initialize("v1") {
     systemClock = ISystemClock(db_.getAddress("SYSTEM_CLOCK"));
+    treasury = ITreasury(db_.getAddress("TREASURY"));
+    performanceFee = initialPerformanceFee_;
+
+    feeAccount = ICreditAccount(db_.getAddress("CREDIT_ACCOUNT")).getAccount(
+      db_.getAddress("MANAGER")
+    );
 
     _initializeElement(db_);
 
     _grantRoleKey(MANAGER_ROLE, keccak256("MANAGER"));
     _grantRoleKey(DEV_ROLE, keccak256("DEV"));
     _grantRoleKey(VAULT_ROLE, keccak256("VAULT"));
+
+    emit PerformanceFeeSet(initialPerformanceFee_);
   }
 }

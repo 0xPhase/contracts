@@ -16,20 +16,17 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
     uint256 user,
     uint256 amount
   ) external override updateTime ownerCheck(user, msg.sender) {
-    IERC20(address(_s.cash)).safeTransferFrom(
-      msg.sender,
-      address(this),
-      amount
+    uint256 shares = ShareLib.calculateShares(
+      amount,
+      _totalSupply(),
+      _totalBalance()
     );
 
-    uint256 totalShares = _totalSupply();
-    uint256 shares = totalShares == 0
-      ? amount
-      : ShareLib.calculateShares(amount, totalShares, _totalBalance());
+    _s.cash.transferManager(msg.sender, address(this), amount);
 
     _mint(address(this), shares);
 
-    _s.bonds[user].push(Bond(BondState.Active, amount, shares, _time()));
+    _s.bonds[user].push(Bond(BondState.Active, amount, shares, _time(), 0));
   }
 
   /// @inheritdoc	IBondAccounting
@@ -39,10 +36,7 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
   ) external override ownerCheck(user, msg.sender) {
     Bond[] storage bonds = _s.bonds[user];
 
-    require(
-      bonds.length >= index + 1,
-      "BondAccountingFacet: Index out of bounds"
-    );
+    require(bonds.length > index, "BondAccountingFacet: Index out of bounds");
 
     Bond storage curBond = bonds[index];
     uint256 curtime = _time();
@@ -70,5 +64,7 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
 
       curBond.state = BondState.BackedOut;
     }
+
+    curBond.end = curtime;
   }
 }

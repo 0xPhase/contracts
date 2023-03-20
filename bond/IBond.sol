@@ -19,6 +19,7 @@ struct Bond {
   uint256 amount;
   uint256 shares;
   uint256 start;
+  uint256 end;
 }
 
 struct BondStorage {
@@ -58,6 +59,10 @@ interface IBondGetters {
   /// @notice Gets the bond duration
   /// @return The bond duration in seconds
   function bondDuration() external view returns (uint256);
+
+  /// @notice Gets the total balance
+  /// @return The total balance
+  function totalBalance() external view returns (uint256);
 }
 
 interface IBondSetters {

@@ -6,10 +6,11 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
-import {IAavePool} from "../interfaces/aave/IAavePool.sol";
+import {ICreditAccount} from "../account/ICreditAccount.sol";
 import {AccessControl} from "../core/AccessControl.sol";
 import {IOracle} from "../oracle/IOracle.sol";
 import {Manager} from "../core/Manager.sol";
+import {IVault} from "../vault/IVault.sol";
 import {ICash} from "../core/ICash.sol";
 import {IDB} from "../db/IDB.sol";
 
@@ -85,9 +86,9 @@ abstract contract PSMV1Storage is AccessControl, ProxyInitializable, IPSM {
   bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
   ICash public cash;
-  IAavePool public aavePool;
-  IERC20 public aToken;
+  IVault public vault;
   IERC20 public underlying;
+  uint256 public creditAccount;
   address public bondAddress;
   uint256 public buyFee;
   uint256 public sellFee;
@@ -95,7 +96,6 @@ abstract contract PSMV1Storage is AccessControl, ProxyInitializable, IPSM {
   uint256 public totalFees;
 
   uint8 internal _underlyingDecimals;
-  uint8 internal _aTokenDecimals;
   uint256 internal _lastUnderlyingBalance;
 
   // Constructor for the PSMV1Storage contract
@@ -105,31 +105,29 @@ abstract contract PSMV1Storage is AccessControl, ProxyInitializable, IPSM {
 
   /// @notice Initializes the PSM cotnract
   /// @param db_ The DB contract address
-  /// @param aavePool_ The AavePool contract address
-  /// @param underlying_ The underlying token address
+  /// @param vault_ The underlying vault
   /// @param buyFee_ The initial buy fee
   /// @param sellFee_ The initial sell fee
   function initializePSMV1(
     IDB db_,
-    IAavePool aavePool_,
-    IERC20 underlying_,
+    IVault vault_,
     uint256 buyFee_,
     uint256 sellFee_
   ) external initialize("v1") {
     _initializeElement(db_);
 
     cash = ICash(db_.getAddress("CASH"));
-    aavePool = aavePool_;
-    aToken = IERC20(
-      aavePool_.getReserveData(address(underlying_)).aTokenAddress
-    );
-    underlying = underlying_;
+    vault = vault_;
+    underlying = vault_.asset();
     bondAddress = db_.getAddress("BOND");
     buyFee = buyFee_;
     sellFee = sellFee_;
 
-    _underlyingDecimals = ERC20(address(underlying_)).decimals();
-    _aTokenDecimals = ERC20(address(aToken)).decimals();
+    creditAccount = ICreditAccount(db_.getAddress("CREDIT_ACCOUNT")).getAccount(
+      address(this)
+    );
+
+    _underlyingDecimals = ERC20(address(underlying)).decimals();
 
     _grantRoleKey(DEFAULT_ADMIN_ROLE, keccak256("MANAGER"));
 

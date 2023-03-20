@@ -11,20 +11,26 @@ contract TestWETH is ERC20, ERC20Burnable {
   // solhint-disable-next-line no-empty-blocks
   constructor() ERC20("Test Wrapped ETH", "tWETH") {}
 
-  function deposit() external payable {
-    _mint(msg.sender, msg.value);
-
-    emit Deposit(msg.sender, msg.value);
+  // @inheritdoc IProxy
+  // solhint-disable-next-line no-empty-blocks
+  receive() external payable {
+    deposit();
   }
 
   function withdraw(uint256 wad) external {
     _burn(msg.sender, wad);
-    payable(msg.sender).transfer(wad);
+    payable(msg.sender).call{value: wad}("");
 
     emit Withdrawal(msg.sender, wad);
   }
 
   function mintAny(address to, uint256 amount) external {
     _mint(to, amount);
+  }
+
+  function deposit() public payable {
+    _mint(msg.sender, msg.value);
+
+    emit Deposit(msg.sender, msg.value);
   }
 }

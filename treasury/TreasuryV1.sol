@@ -131,7 +131,7 @@ contract TreasuryV1 is TreasuryStorageV1 {
     );
 
     if (token == ETH_ADDRESS) {
-      CallLib.callFunc(to, "", amount);
+      payable(to).call{value: amount}("");
     } else {
       IERC20(token).safeTransfer(to, amount);
     }
@@ -155,7 +155,6 @@ contract TreasuryV1 is TreasuryStorageV1 {
   ) public view override returns (address[] memory) {
     return _cause[cause].tokens;
   }
-
 
   function _changeToken(
     bytes32 cause,

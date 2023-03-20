@@ -24,6 +24,12 @@ interface ICash {
   /// @param from The address to burn tokens from
   /// @param amount The amount of tokens to burn
   function burnManager(address from, uint256 amount) external;
+
+  /// @notice Transfers tokens for the manager
+  /// @param from The address to transfer the tokens from
+  /// @param to The address to transfer the tokens to
+  /// @param amount The amount of tokens to transfer
+  function transferManager(address from, address to, uint256 amount) external;
 }
 
 abstract contract CashV1Storage is
@@ -58,6 +64,7 @@ abstract contract CashV1Storage is
     _grantRoleKey(SNAPSHOT_ROLE, keccak256("DEV"));
     _grantRoleKey(MANAGER_ROLE, keccak256("VAULT"));
     _grantRoleKey(MANAGER_ROLE, keccak256("PSM"));
+    _grantRoleKey(MANAGER_ROLE, keccak256("BOND"));
   }
 
   // The following functions are overrides required by Solidity.

@@ -44,7 +44,7 @@ abstract contract BondBase is
   }
 
   /// @notice Gets the total balance
-  /// @return Total balance
+  /// @return The total balance
   function _totalBalance() internal view returns (uint256) {
     return IERC20(address(_s.cash)).balanceOf(address(this));
   }

@@ -159,6 +159,11 @@ contract BalancerV1 is BalancerV1Storage {
       acc -= yieldAmount;
     }
 
+    if (acc == 0) {
+      asset.safeTransfer(msg.sender, amount);
+      return amount;
+    }
+
     revert("BalancerV1: No way to pay requested amount");
   }
 
@@ -171,6 +176,8 @@ contract BalancerV1 is BalancerV1Storage {
     return withdraw(asset, user, balanceOf(asset, user));
   }
 
+  /// @notice Adds a new yield
+  /// @param yieldSrc The yield source
   /// @custom:protected onlyRole(MANAGER_ROLE)
   function addYield(IYield yieldSrc) external onlyRole(MANAGER_ROLE) {
     Yield storage yield = _yield[yieldSrc];
@@ -191,6 +198,8 @@ contract BalancerV1 is BalancerV1Storage {
     yield.state = true;
   }
 
+  /// @notice Sets yield state
+  /// @param yieldSrc The yield source
   /// @custom:protected onlyRole(DEV_ROLE)
   function setYieldState(
     IYield yieldSrc,
@@ -204,9 +213,19 @@ contract BalancerV1 is BalancerV1Storage {
 
     if (!state) {
       yieldSrc.fullWithdraw();
+      yield.lastDeposit = 0;
     }
+  }
 
-    _updateAPR(yieldSrc);
+  /// @notice Sets the performance fee
+  /// @param newPerformanceFee The new performance fee
+  /// @custom:protected onlyRole(MANAGER_ROLE)
+  function setPerformanceFee(
+    uint256 newPerformanceFee
+  ) external onlyRole(MANAGER_ROLE) {
+    performanceFee = newPerformanceFee;
+
+    emit PerformanceFeeSet(newPerformanceFee);
   }
 
   /// @inheritdoc	IBalancer
@@ -218,7 +237,7 @@ contract BalancerV1 is BalancerV1Storage {
     amount = IERC20(asset).balanceOf(address(this));
 
     for (uint256 i = 0; i < set.length(); i++) {
-      amount += IYield(set.at(i)).totalBalance();
+      amount += _totalBalance(IYield(set.at(i)));
     }
   }
 
@@ -277,7 +296,7 @@ contract BalancerV1 is BalancerV1Storage {
         continue;
       }
 
-      uint256 yieldBalance = IYield(infos[i].yieldSrc).totalBalance();
+      uint256 yieldBalance = _totalBalance(IYield(infos[i].yieldSrc));
       uint256 targetBalance = (averagePerAPR * arr[i].apr) / 1 ether;
 
       if (yieldBalance >= targetBalance) {
@@ -312,7 +331,7 @@ contract BalancerV1 is BalancerV1Storage {
 
       if (!_yield[yieldSrc].state) continue;
 
-      uint256 curTotal = yieldSrc.totalBalance();
+      uint256 curTotal = _totalBalance(yieldSrc);
 
       if (curTotal == 0) continue;
 
@@ -378,6 +397,7 @@ contract BalancerV1 is BalancerV1Storage {
 
     uint256 time = systemClock.time();
     uint256 total = yieldSrc.totalBalance();
+    IERC20 asset = yieldSrc.asset();
 
     if (total == 0) {
       yield.apr = 0;
@@ -385,20 +405,41 @@ contract BalancerV1 is BalancerV1Storage {
       yield.lastUpdate = time;
       yield.lastDeposit = total;
 
+      emit YieldAPRSet(asset, time, yield.apr);
+
       return;
     }
 
     yield.apr = _calcAPR(yieldSrc);
+
+    uint256 feefull = _totalBalance(yieldSrc);
+
+    if (total > feefull) {
+      Asset storage ast = _asset[asset];
+      uint256 fee = total - feefull;
+
+      uint256 shares = ShareLib.calculateShares(
+        fee,
+        ast.totalShares,
+        totalBalance(asset)
+      );
+
+      ast.shares[feeAccount] += shares;
+      ast.totalShares += shares;
+    }
+
     yield.lastUpdate = time;
     yield.lastDeposit = total;
+
+    emit YieldAPRSet(asset, time, yield.apr);
   }
 
   function _calcAPR(IYield yieldSrc) internal view returns (uint256) {
-    uint256 totalBal = yieldSrc.totalBalance();
-
-    if (totalBal == 0) return 0;
-
+    uint256 totalBal = _totalBalance(yieldSrc);
     Yield storage yield = _yield[yieldSrc];
+
+    if (totalBal == 0 || yield.lastDeposit == 0) return 0;
+
     uint256 time = systemClock.getTime();
 
     uint256 start = MathLib.max(time - APR_DURATION, yield.start);
@@ -410,11 +451,27 @@ contract BalancerV1 is BalancerV1Storage {
     uint256 left = update - start;
     uint256 right = time - update;
 
-    uint256 increase = totalBal - yield.lastDeposit;
+    if (total == 0 || right == 0) return 0;
+
+    uint256 increase = yield.lastDeposit > totalBal
+      ? 0
+      : totalBal - yield.lastDeposit;
 
     uint256 rightAPR = (increase * 365.25 days * 1 ether) /
       (yield.lastDeposit * right);
 
     return ((left * yield.apr) + (right * rightAPR)) / total;
+  }
+
+  function _totalBalance(IYield yieldSrc) internal view returns (uint256) {
+    Yield storage yield = _yield[yieldSrc];
+    uint256 totalBal = yieldSrc.totalBalance();
+
+    if (yield.lastDeposit > totalBal) return totalBal;
+
+    return
+      yield.lastDeposit +
+      ((totalBal - yield.lastDeposit) * (1 ether - performanceFee)) /
+      1 ether;
   }
 }

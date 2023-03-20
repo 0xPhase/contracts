@@ -9,9 +9,7 @@ import {IProxy} from "./IProxy.sol";
 abstract contract Proxy is IProxy {
   // @inheritdoc IProxy
   // solhint-disable-next-line no-empty-blocks
-  receive() external payable {
-    _fallback();
-  }
+  receive() external payable {}
 
   // @inheritdoc IProxy
   fallback() external payable {
