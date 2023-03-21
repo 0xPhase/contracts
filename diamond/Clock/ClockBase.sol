@@ -25,9 +25,15 @@ abstract contract ClockBase is ElementBase {
     _cs().systemClock.time();
   }
 
+  /// @notice Gets the time while updating it
+  /// @return The current time
+  function _time() internal returns (uint256) {
+    return _cs().systemClock.time();
+  }
+
   /// @notice Gets the time without updating it
   /// @return The current time
-  function _time() internal view returns (uint256) {
+  function _getTime() internal view returns (uint256) {
     return _cs().systemClock.getTime();
   }
 

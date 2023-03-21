@@ -7,12 +7,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ISystemClock} from "../../clock/ISystemClock.sol";
 import {ITreasury} from "../../treasury/ITreasury.sol";
 import {IVaultGetters, UserInfo} from "../IVault.sol";
+import {IPegToken} from "../../peg/IPegToken.sol";
 import {IOracle} from "../../oracle/IOracle.sol";
 import {Storage} from "../../misc/Storage.sol";
 import {Manager} from "../../core/Manager.sol";
 import {IYield} from "../../yield/IYield.sol";
 import {IInterest} from "../IInterest.sol";
-import {ICash} from "../../core/ICash.sol";
 import {VaultBase} from "./VaultBase.sol";
 
 contract VaultGettersFacet is VaultBase, IVaultGetters {
@@ -26,6 +26,11 @@ contract VaultGettersFacet is VaultBase, IVaultGetters {
   /// @inheritdoc	IVaultGetters
   function debtValue(uint256 user) external view override returns (uint256) {
     return _debtValueUser(user);
+  }
+
+  /// @inheritdoc	IVaultGetters
+  function debtShares(uint256 user) external view override returns (uint256) {
+    return _s.debtShares[user];
   }
 
   /// @inheritdoc	IVaultGetters
@@ -72,13 +77,6 @@ contract VaultGettersFacet is VaultBase, IVaultGetters {
   }
 
   /// @inheritdoc	IVaultGetters
-  function userInfo(
-    uint256 user
-  ) external view override returns (UserInfo memory) {
-    return _s.userInfo[user];
-  }
-
-  /// @inheritdoc	IVaultGetters
   function systemClock() external view override returns (ISystemClock) {
     return _s.systemClock;
   }
@@ -89,7 +87,7 @@ contract VaultGettersFacet is VaultBase, IVaultGetters {
   }
 
   /// @inheritdoc	IVaultGetters
-  function cash() external view override returns (ICash) {
+  function cash() external view override returns (IPegToken) {
     return _s.cash;
   }
 

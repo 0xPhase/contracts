@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
-import {ICash, CashV1Storage} from "../ICash.sol";
+import {IPegToken, PegTokenV1Storage} from "../IPegToken.sol";
 
-contract CashV1 is CashV1Storage {
-  /// @inheritdoc	ICash
+contract PegTokenV1 is PegTokenV1Storage {
+  /// @inheritdoc	IPegToken
   /// @custom:protected onlyRole(SNAPSHOT_ROLE)
   function snapshot() external override onlyRole(SNAPSHOT_ROLE) {
     _snapshot();
   }
 
-  /// @inheritdoc	ICash
+  /// @inheritdoc	IPegToken
   /// @custom:protected onlyRole(MANAGER_ROLE)
   function mintManager(
     address to,
@@ -19,7 +19,7 @@ contract CashV1 is CashV1Storage {
     _mint(to, amount);
   }
 
-  /// @inheritdoc	ICash
+  /// @inheritdoc	IPegToken
   /// @custom:protected onlyRole(MANAGER_ROLE)
   function burnManager(
     address from,
@@ -28,7 +28,7 @@ contract CashV1 is CashV1Storage {
     _burn(from, amount);
   }
 
-  /// @inheritdoc	ICash
+  /// @inheritdoc	IPegToken
   /// @custom:protected onlyRole(MANAGER_ROLE)
   function transferManager(
     address from,

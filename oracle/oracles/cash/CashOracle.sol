@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
+import {IPegToken} from "../../../peg/IPegToken.sol";
 import {ShareLib} from "../../../lib/ShareLib.sol";
-import {ICash} from "../../../core/ICash.sol";
 import {IBond} from "../../../bond/IBond.sol";
 import {IOracle} from "../../IOracle.sol";
 
 contract CashOracle is IOracle {
-  ICash public cash;
+  IPegToken public cash;
   IBond public bond;
 
-  constructor(ICash cash_, IBond bond_) {
+  constructor(IPegToken cash_, IBond bond_) {
     cash = cash_;
     bond = bond_;
   }

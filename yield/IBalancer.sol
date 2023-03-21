@@ -114,6 +114,7 @@ abstract contract BalancerV1Storage is
 
     _initializeElement(db_);
 
+    _grantRoleKey(DEFAULT_ADMIN_ROLE, keccak256("MANAGER"));
     _grantRoleKey(MANAGER_ROLE, keccak256("MANAGER"));
     _grantRoleKey(DEV_ROLE, keccak256("DEV"));
     _grantRoleKey(VAULT_ROLE, keccak256("VAULT"));

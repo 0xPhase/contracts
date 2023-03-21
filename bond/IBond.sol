@@ -5,8 +5,8 @@ import {IAccessControl} from "../diamond/AccessControl/IAccessControl.sol";
 import {ICreditAccount} from "../account/ICreditAccount.sol";
 import {ISystemClock} from "../clock/ISystemClock.sol";
 import {IERC20} from "../diamond/ERC20/IERC20.sol";
+import {IPegToken} from "../peg/IPegToken.sol";
 import {Manager} from "../core/Manager.sol";
-import {ICash} from "../core/ICash.sol";
 
 enum BondState {
   Active,
@@ -26,7 +26,7 @@ struct BondStorage {
   mapping(uint256 => Bond[]) bonds;
   Manager manager;
   ICreditAccount creditAccount;
-  ICash cash;
+  IPegToken cash;
   uint256 bondDuration;
 }
 
@@ -34,12 +34,20 @@ interface IBondAccounting {
   /// @notice Creates a new bond
   /// @param user The owner of the bond
   /// @param amount The amount of CASH to bond
+  function bond(address user, uint256 amount) external;
+
+  /// @notice Creates a new bond
+  /// @param user The owner of the bond
+  /// @param amount The amount of CASH to bond
   function bond(uint256 user, uint256 amount) external;
 
   /// @notice Exits a bond
-  /// @param user The owner of the bond
   /// @param index The index of the bond
-  function exit(uint256 user, uint256 index) external;
+  function exit(uint256 index) external;
+
+  /// @notice Unwraps bond tokens
+  /// @param amount The amount of bond tokens to unwrap
+  function unwrap(uint256 amount) external returns (uint256);
 }
 
 interface IBondGetters {
@@ -54,7 +62,7 @@ interface IBondGetters {
 
   /// @notice Gets the cash contract
   /// @return The cash contract
-  function cash() external view returns (ICash);
+  function cash() external view returns (IPegToken);
 
   /// @notice Gets the bond duration
   /// @return The bond duration in seconds

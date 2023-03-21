@@ -10,19 +10,18 @@ import {ICreditAccount} from "../account/ICreditAccount.sol";
 import {ISystemClock} from "../clock/ISystemClock.sol";
 import {ITreasury} from "../treasury/ITreasury.sol";
 import {IBalancer} from "../yield/IBalancer.sol";
+import {IPegToken} from "../peg/IPegToken.sol";
 import {IOracle} from "../oracle/IOracle.sol";
 import {Storage} from "../misc/Storage.sol";
 import {Manager} from "../core/Manager.sol";
 import {IInterest} from "./IInterest.sol";
 import {IAdapter} from "./IAdapter.sol";
-import {ICash} from "../core/ICash.sol";
 import {IBond} from "../bond/IBond.sol";
 
 struct UserInfo {
   // User info
   uint256 version;
   uint256 deposit;
-  uint256 debtShares;
   uint256 healthTarget;
   uint256 yieldPercent;
 }
@@ -47,7 +46,7 @@ struct VaultStorage {
   ISystemClock systemClock;
   Manager manager;
   ICreditAccount creditAccount;
-  ICash cash;
+  IPegToken cash;
   ITreasury treasury;
   IBond bond;
   IBalancer balancer;
@@ -58,7 +57,8 @@ struct VaultStorage {
   uint256 liquidationFee;
   uint256 healthTargetMinimum;
   uint256 healthTargetMaximum;
-  // Debt info
+  // Debt
+  mapping(uint256 => uint256) debtShares;
   uint256 collectiveDebt;
   uint256 totalDebtShares;
   uint256 lastDebtUpdate;
@@ -79,6 +79,16 @@ interface IVaultAccounting {
     bytes memory extraData
   ) external payable;
 
+  /// @notice Adds collateral for the user
+  /// @param user The user address
+  /// @param amount The amount to add
+  /// @param extraData The extra adapter data
+  function addCollateral(
+    address user,
+    uint256 amount,
+    bytes memory extraData
+  ) external payable;
+
   /// @notice Gives collateral for the user
   /// @param user The user id
   /// @param amount The amount to add
@@ -90,35 +100,42 @@ interface IVaultAccounting {
   ) external payable;
 
   /// @notice Removes collateral from the user
-  /// @param user The user id
   /// @param amount The amount to remove
   /// @param extraData The extra adapter data
-  function removeCollateral(
-    uint256 user,
-    uint256 amount,
-    bytes memory extraData
-  ) external;
+  function removeCollateral(uint256 amount, bytes memory extraData) external;
 
   /// @notice Removes all collateral from the user
-  /// @param user The user id
   /// @param extraData The extra adapter data
-  function removeAllCollateral(uint256 user, bytes memory extraData) external;
+  function removeAllCollateral(bytes memory extraData) external;
 
-  /// @notice Mints CASH for the user
-  /// @param user The user id
-  /// @param amount Yhe amount to mint
-  function mintUSD(uint256 user, uint256 amount) external;
+  /// @notice Mints for the user
+  /// @param amount The amount to mint
+  function mintUSD(uint256 amount) external;
 
-  /// @notice Repays CASH for the user
-  /// @param user The user id
-  /// @param shares The amount of shares to repay
-  function repayUSD(uint256 user, uint256 shares) external;
+  /// @notice Repays for the user
+  /// @param amount The amount to repay
+  function repayUSD(uint256 amount) external;
 
-  /// @notice Repays CASH for the user
+  /// @notice Repays for the user
+  /// @param user The user address
+  /// @param amount The amount to repay
+  function repayUSD(address user, uint256 amount) external;
+
+  /// @notice Repays for the user
   /// @param user The user id
-  /// @param shares The amount of shares to repay
-  /// @param useMax If repaying too much, repay as much as wallet balance allows
-  function repayUSD(uint256 user, uint256 shares, bool useMax) external;
+  /// @param amount The amount to repay
+  function repayUSD(uint256 user, uint256 amount) external;
+
+  /// @notice Repays all for the user
+  function repayAllUSD() external;
+
+  /// @notice Repays all for the user
+  /// @param user The user address
+  function repayAllUSD(address user) external;
+
+  /// @notice Repays all for the user
+  /// @param user The user id
+  function repayAllUSD(uint256 user) external;
 }
 
 interface IVaultGetters {
@@ -131,6 +148,11 @@ interface IVaultGetters {
   /// @param user The user id
   /// @return The debt value
   function debtValue(uint256 user) external view returns (uint256);
+
+  /// @notice Returns the user's debt shares
+  /// @param user The user id
+  /// @return The debt shares
+  function debtShares(uint256 user) external view returns (uint256);
 
   /// @notice Returns the user's deposit value in dollars
   /// @param user The user id
@@ -164,11 +186,6 @@ interface IVaultGetters {
   /// @return The amount of collateral
   function collectiveCollateral() external view returns (uint256);
 
-  /// @notice Returns the user info for the user
-  /// @param user The user id
-  /// @return The user info
-  function userInfo(uint256 user) external view returns (UserInfo memory);
-
   /// @notice Returns the system clock contract
   /// @return The system clock contract
   function systemClock() external view returns (ISystemClock);
@@ -179,7 +196,7 @@ interface IVaultGetters {
 
   /// @notice Returns the cash contract
   /// @return The cash contract
-  function cash() external view returns (ICash);
+  function cash() external view returns (IPegToken);
 
   /// @notice Returns the treasury contract
   /// @return The treasury contract
@@ -261,14 +278,12 @@ interface IVaultLiquidation {
 
 interface IVaultSetters {
   /// @notice Sets the health target for a liquidation for the user
-  /// @param user The user id
   /// @param healthTarget The health target
-  function setHealthTarget(uint256 user, uint256 healthTarget) external;
+  function setHealthTarget(uint256 healthTarget) external;
 
   /// @notice Sets the yield percent for the user
-  /// @param user The user id
   /// @param yieldPercent The yield percent
-  function setYieldPercent(uint256 user, uint256 yieldPercent) external;
+  function setYieldPercent(uint256 yieldPercent) external;
 }
 
 // solhint-disable-next-line no-empty-blocks

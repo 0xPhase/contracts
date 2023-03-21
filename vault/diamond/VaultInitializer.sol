@@ -9,10 +9,10 @@ import {ISystemClock} from "../../clock/ISystemClock.sol";
 import {ITreasury} from "../../treasury/ITreasury.sol";
 import {VaultConstants} from "./VaultConstants.sol";
 import {IBalancer} from "../../yield/IBalancer.sol";
+import {IPegToken} from "../../peg/IPegToken.sol";
 import {IOracle} from "../../oracle/IOracle.sol";
 import {Storage} from "../../misc/Storage.sol";
 import {Manager} from "../../core/Manager.sol";
-import {ICash} from "../../core/ICash.sol";
 import {IInterest} from "../IInterest.sol";
 import {IBond} from "../../bond/IBond.sol";
 import {VaultBase} from "./VaultBase.sol";
@@ -65,7 +65,7 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
     _s.systemClock = ISystemClock(db_.getAddress("SYSTEM_CLOCK"));
     _s.manager = Manager(managerAddress);
     _s.creditAccount = ICreditAccount(db_.getAddress("CREDIT_ACCOUNT"));
-    _s.cash = ICash(db_.getAddress("CASH"));
+    _s.cash = IPegToken(db_.getAddress("CASH"));
     _s.treasury = ITreasury(db_.getAddress("TREASURY"));
     _s.bond = IBond(db_.getAddress("BOND"));
     _s.balancer = IBalancer(db_.getAddress("BALANCER"));
@@ -83,6 +83,7 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
     _s.lastDebtUpdate = _s.systemClock.time();
 
     _grantRoleKey(VaultConstants.MANAGER_ROLE, keccak256("MANAGER"));
+    _grantRoleKey(VaultConstants.DEV_ROLE, keccak256("DEV"));
     _transferOwnership(managerAddress);
 
     emit PriceOracleSet(priceOracle_);

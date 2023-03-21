@@ -8,10 +8,10 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
 import {ICreditAccount} from "../account/ICreditAccount.sol";
 import {AccessControl} from "../core/AccessControl.sol";
+import {IPegToken} from "../peg/IPegToken.sol";
 import {IOracle} from "../oracle/IOracle.sol";
 import {Manager} from "../core/Manager.sol";
 import {IVault} from "../vault/IVault.sol";
-import {ICash} from "../core/ICash.sol";
 import {IDB} from "../db/IDB.sol";
 
 interface IPSM {
@@ -85,7 +85,7 @@ abstract contract PSMV1Storage is AccessControl, ProxyInitializable, IPSM {
 
   bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
-  ICash public cash;
+  IPegToken public cash;
   IVault public vault;
   IERC20 public underlying;
   uint256 public creditAccount;
@@ -116,7 +116,7 @@ abstract contract PSMV1Storage is AccessControl, ProxyInitializable, IPSM {
   ) external initialize("v1") {
     _initializeElement(db_);
 
-    cash = ICash(db_.getAddress("CASH"));
+    cash = IPegToken(db_.getAddress("CASH"));
     vault = vault_;
     underlying = vault_.asset();
     bondAddress = db_.getAddress("BOND");
@@ -130,6 +130,7 @@ abstract contract PSMV1Storage is AccessControl, ProxyInitializable, IPSM {
     _underlyingDecimals = ERC20(address(underlying)).decimals();
 
     _grantRoleKey(DEFAULT_ADMIN_ROLE, keccak256("MANAGER"));
+    _grantRoleKey(MANAGER_ROLE, keccak256("MANAGER"));
 
     emit BuyFeeSet(buyFee_);
     emit SellFeeSet(sellFee_);

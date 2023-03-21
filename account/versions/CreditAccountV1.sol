@@ -16,7 +16,7 @@ contract CreditAccountV1 is CreditAccountStorageV1 {
 
     _tokenIds.increment();
     tokenId = _tokenIds.current();
-    _safeMint(owner, tokenId);
+    _mint(owner, tokenId);
 
     emit CreditAccountCreated(msg.sender, tokenId);
   }

@@ -14,16 +14,10 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
 
   /// @inheritdoc	IVaultSetters
   function setHealthTarget(
-    uint256 user,
     uint256 healthTarget
-  )
-    external
-    override
-    ownerCheck(user, msg.sender)
-    updateUser(user)
-    freezeCheck(true)
-    updateDebt
-  {
+  ) external override updateMessageUser freezeCheck(true) updateDebt {
+    uint256 user = _s.creditAccount.getAccount(msg.sender);
+
     require(
       healthTarget >= _s.healthTargetMinimum,
       "VaultSettersFacet: Health target too low"
@@ -41,16 +35,10 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
 
   /// @inheritdoc	IVaultSetters
   function setYieldPercent(
-    uint256 user,
     uint256 yieldPercent
-  )
-    external
-    override
-    ownerCheck(user, msg.sender)
-    updateUser(user)
-    freezeCheck(true)
-    updateDebt
-  {
+  ) external override updateMessageUser freezeCheck(true) updateDebt {
+    uint256 user = _s.creditAccount.getAccount(msg.sender);
+
     _s.userInfo[user].yieldPercent = yieldPercent;
 
     emit YieldPercentSet(user, yieldPercent);
@@ -137,10 +125,10 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
 
   /// @notice Sets the market state
   /// @param newState The new market state
-  /// @custom:protected onlyRole(VaultConstants.MANAGER_ROLE)
+  /// @custom:protected onlyRole(VaultConstants.DEV_ROLE)
   function setMarketState(
     bool newState
-  ) external onlyRole(VaultConstants.MANAGER_ROLE) {
+  ) external onlyRole(VaultConstants.DEV_ROLE) {
     _s.marketsLocked = !newState;
 
     emit MarketStateSet(newState);

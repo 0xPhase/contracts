@@ -12,10 +12,12 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
   using SafeERC20 for IERC20;
 
   /// @inheritdoc	IBondAccounting
-  function bond(
-    uint256 user,
-    uint256 amount
-  ) external override updateTime ownerCheck(user, msg.sender) {
+  function bond(address user, uint256 amount) public override {
+    bond(_s.creditAccount.getAccount(user), amount);
+  }
+
+  /// @inheritdoc	IBondAccounting
+  function bond(uint256 user, uint256 amount) public override {
     uint256 shares = ShareLib.calculateShares(
       amount,
       _totalSupply(),
@@ -30,10 +32,8 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
   }
 
   /// @inheritdoc	IBondAccounting
-  function exit(
-    uint256 user,
-    uint256 index
-  ) external override ownerCheck(user, msg.sender) {
+  function exit(uint256 index) external {
+    uint256 user = _s.creditAccount.getAccount(msg.sender);
     Bond[] storage bonds = _s.bonds[user];
 
     require(bonds.length > index, "BondAccountingFacet: Index out of bounds");
@@ -57,14 +57,29 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
       uint256 fx = _curve(x);
       uint256 amount = (curBond.amount * fx) / 1 ether;
 
-      IERC20 cash = IERC20(address(_s.cash));
-
-      cash.safeTransfer(msg.sender, amount);
+      IERC20(address(_s.cash)).safeTransfer(msg.sender, amount);
       _burn(address(this), curBond.shares);
 
       curBond.state = BondState.BackedOut;
     }
 
     curBond.end = curtime;
+  }
+
+  /// @inheritdoc	IBondAccounting
+  function unwrap(uint256 amount) public override returns (uint256) {
+    require(amount > 0, "BondAccountingFacet: Cannot unwrap 0 tokens");
+
+    uint256 underlying = ShareLib.calculateAmount(
+      amount,
+      _totalSupply(),
+      _totalBalance()
+    );
+
+    _burn(msg.sender, amount);
+
+    IERC20(address(_s.cash)).safeTransfer(msg.sender, underlying);
+
+    return underlying;
   }
 }

@@ -7,11 +7,11 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LiquidationInfo, UserInfo, IVaultLiquidation} from "../IVault.sol";
 import {ITreasury} from "../../treasury/ITreasury.sol";
 import {VaultConstants} from "./VaultConstants.sol";
+import {IPegToken} from "../../peg/IPegToken.sol";
 import {ShareLib} from "../../lib/ShareLib.sol";
 import {ILiquidator} from "../ILiquidator.sol";
 import {MathLib} from "../../lib/MathLib.sol";
 import {VaultBase} from "./VaultBase.sol";
-import {ICash} from "../../core/ICash.sol";
 
 contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
   using SafeERC20 for IERC20;
@@ -30,9 +30,8 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
 
     require(!info.solvent, "VaultLiquidationFacet: User is solvent");
 
-    UserInfo storage userInfo = _s.userInfo[user];
     ITreasury treasury = _s.treasury;
-    ICash cash = _s.cash;
+    IPegToken cash = _s.cash;
 
     if (info.rebate > 0) {
       treasury.spend(
@@ -49,8 +48,8 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
       _s.collectiveDebt
     );
 
-    userInfo.deposit -= info.assetReward;
-    userInfo.debtShares -= debtShares;
+    _s.userInfo[user].deposit -= info.assetReward;
+    _s.debtShares[user] -= debtShares;
 
     _s.totalDebtShares -= debtShares;
     _s.collectiveDebt -= info.borrowChange;
@@ -102,7 +101,6 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
       (totalFee * _treasuryLiquidationFee()) / 1 ether
     );
 
-    // Non important safeguard!
     uint256 realTokens = MathLib.min(
       userDeposit,
       _scaleToAsset((cappedChange * 1 ether) / (tPrice))

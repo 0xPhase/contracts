@@ -2,9 +2,9 @@
 pragma solidity ^0.8.17;
 
 import {ICreditAccount} from "../account/ICreditAccount.sol";
+import {IPegToken} from "../peg/IPegToken.sol";
 import {IBondGetters, Bond} from "./IBond.sol";
 import {BondBase} from "./BondBase.sol";
-import {ICash} from "../core/ICash.sol";
 
 contract BondGettersFacet is BondBase, IBondGetters {
   /// @inheritdoc	IBondGetters
@@ -27,7 +27,7 @@ contract BondGettersFacet is BondBase, IBondGetters {
   }
 
   /// @inheritdoc	IBondGetters
-  function cash() external view override returns (ICash) {
+  function cash() external view override returns (IPegToken) {
     return _s.cash;
   }
 

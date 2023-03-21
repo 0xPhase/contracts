@@ -31,18 +31,6 @@ abstract contract BondBase is
   /// @param duration The new bond duration
   event BondDurationSet(uint256 indexed duration);
 
-  /// @notice Checks if tokenId is owned by the owner
-  /// @param tokenId The token to check for
-  /// @param owner The address to check against
-  modifier ownerCheck(uint256 tokenId, address owner) {
-    require(
-      owner == IERC721(address(_s.creditAccount)).ownerOf(tokenId),
-      "BondBase: Not owner of token"
-    );
-
-    _;
-  }
-
   /// @notice Gets the total balance
   /// @return The total balance
   function _totalBalance() internal view returns (uint256) {

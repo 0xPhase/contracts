@@ -31,18 +31,21 @@ contract PSMV1 is PSMV1Storage {
     uint256 fullAmount = MathLib.scaleAmount(amount, _underlyingDecimals, 18);
     uint256 fee = (fullAmount * buyFee) / 1 ether;
 
-    require(fee > 0, "PSMV1: Fee cannot round down to 0");
+    require(buyFee == 0 || fee > 0, "PSMV1: Fee cannot round down to 0");
 
     uint256 userAmount = fullAmount - fee;
 
     cash.mintManager(msg.sender, userAmount);
-    cash.mintManager(bondAddress, fee);
+
+    if (fee > 0) {
+      cash.mintManager(bondAddress, fee);
+    }
 
     underlying.safeIncreaseAllowance(address(vault), amount);
 
-    vault.addCollateral(creditAccount, amount, "");
+    vault.addCollateral(amount, "");
 
-    totalTraded += amount;
+    totalTraded += fullAmount;
     totalFees += fee;
 
     emit CashBought(msg.sender, fee, userAmount, fullAmount);
@@ -55,17 +58,20 @@ contract PSMV1 is PSMV1Storage {
     uint256 fullAmount = MathLib.scaleAmount(amount, _underlyingDecimals, 18);
     uint256 fee = (amount * sellFee) / 1 ether;
 
-    require(fee > 0, "PSMV1: Fee cannot round down to 0");
+    require(sellFee == 0 || fee > 0, "PSMV1: Fee cannot round down to 0");
 
     uint256 fullFee = MathLib.scaleAmount(fee, _underlyingDecimals, 18);
     uint256 fullUserAmount = fullAmount - fullFee;
 
     cash.burnManager(msg.sender, fullAmount);
-    cash.mintManager(bondAddress, fullFee);
 
-    vault.removeCollateral(creditAccount, amount - fee, "");
+    if (fullFee > 0) {
+      cash.mintManager(bondAddress, fullFee);
+    }
 
-    totalTraded += amount;
+    vault.removeCollateral(amount - fee, "");
+
+    totalTraded += fullAmount;
     totalFees += fullFee;
 
     emit CashSold(msg.sender, fee, fullAmount, fullUserAmount);

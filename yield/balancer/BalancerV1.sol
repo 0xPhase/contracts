@@ -75,7 +75,7 @@ contract BalancerV1 is BalancerV1Storage {
 
       yield.lastDeposit = offset.yieldSrc.totalBalance();
 
-      return;
+      break;
     }
   }
 
@@ -280,10 +280,14 @@ contract BalancerV1 is BalancerV1Storage {
 
       IYield yield = IYield(infos[i].yieldSrc);
       uint256 apr = twaa(yield);
-      totalAPR += apr;
 
+      totalAPR += apr;
       arr[i].apr = apr;
       arr[i].yieldSrc = yield;
+    }
+
+    if (totalAPR == 0) {
+      return (arr, 0, 0);
     }
 
     uint256 averagePerAPR = (totalBalance(asset) * 1 ether) / totalAPR;

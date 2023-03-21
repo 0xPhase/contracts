@@ -11,7 +11,7 @@ import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
 import {AccessControl} from "../core/AccessControl.sol";
 import {IDB} from "../db/IDB.sol";
 
-interface ICash {
+interface IPegToken {
   /// @notice Takes a snapshot of the current token state
   function snapshot() external;
 
@@ -32,8 +32,8 @@ interface ICash {
   function transferManager(address from, address to, uint256 amount) external;
 }
 
-abstract contract CashV1Storage is
-  ICash,
+abstract contract PegTokenV1Storage is
+  IPegToken,
   Initializable,
   ProxyInitializable,
   ERC20Upgradeable,
@@ -50,13 +50,19 @@ abstract contract CashV1Storage is
     _disableInitialization();
   }
 
-  /// @notice Initializes the cash contract on version 1
+  /// @notice Initializes the peg token contract on version 1
   /// @param db_ The protocol DB
-  function initializeCashV1(IDB db_) external initialize("v1") initializer {
-    __ERC20_init("Phase Dollar", "CASH");
+  function initializePegTokenV1(
+    IDB db_,
+    string memory name_,
+    string memory symbol_
+  ) external initialize("v1") initializer {
+    string memory fullName = string.concat("Phase ", name_);
+
+    __ERC20_init(fullName, symbol_);
     __ERC20Burnable_init();
     __ERC20Snapshot_init();
-    __ERC20Permit_init("Phase Dollar", db_);
+    __ERC20Permit_init(fullName, db_);
 
     _initializeElement(db_);
 

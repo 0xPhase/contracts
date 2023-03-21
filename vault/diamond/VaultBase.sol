@@ -12,11 +12,11 @@ import {VaultStorage, UserInfo, IVault} from "../IVault.sol";
 import {OwnableBase} from "../../diamond/Ownable/OwnableBase.sol";
 import {ITreasury} from "../../treasury/ITreasury.sol";
 import {VaultConstants} from "./VaultConstants.sol";
+import {IPegToken} from "../../peg/IPegToken.sol";
 import {IOracle} from "../../oracle/IOracle.sol";
 import {ShareLib} from "../../lib/ShareLib.sol";
 import {IYield} from "../../yield/IYield.sol";
 import {MathLib} from "../../lib/MathLib.sol";
-import {ICash} from "../../core/ICash.sol";
 import {IInterest} from "../IInterest.sol";
 import {IAdapter} from "../IAdapter.sol";
 
@@ -149,6 +149,21 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   /// @notice Updates the user info
   /// @param user The user id
   modifier updateUser(uint256 user) {
+    _updateUser(user);
+    _;
+  }
+
+  /// @notice Updates the user info
+  modifier updateMessageUser() {
+    _updateUser(_s.creditAccount.getAccount(msg.sender));
+    _;
+  }
+
+  // Shared functions
+
+  /// @notice Updates the user info
+  /// @param user The user id
+  function _updateUser(uint256 user) internal {
     UserInfo storage info = _s.userInfo[user];
 
     if (info.version == 0) {
@@ -160,23 +175,7 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
 
       info.version++;
     }
-
-    _;
   }
-
-  /// @notice Checks if the credit account id is owned by sender
-  /// @param tokenId The account id to check
-  /// @param sender The user to check against
-  modifier ownerCheck(uint256 tokenId, address sender) {
-    require(
-      sender == IERC721(address(_s.creditAccount)).ownerOf(tokenId),
-      "VaultBase: Not owner of token"
-    );
-
-    _;
-  }
-
-  // Shared functions
 
   function _rebalanceYield(uint256 user) internal {
     UserInfo storage info = _s.userInfo[user];
@@ -221,7 +220,7 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
     if (treasuryAmount == 0 || rebateAmount == 0 || bondAmount == 0)
       return false;
 
-    ICash cash = _s.cash;
+    IPegToken cash = _s.cash;
     ITreasury treasury = _s.treasury;
     uint256 totalTreasury = treasuryAmount + rebateAmount;
 
@@ -290,7 +289,7 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   /// @param user The user id
   /// @return The debt value
   function _debtValueUser(uint256 user) internal view returns (uint256) {
-    return _debtValue(_s.userInfo[user].debtShares);
+    return _debtValue(_s.debtShares[user]);
   }
 
   /// @notice Returns the debt value of the shares in dollars
