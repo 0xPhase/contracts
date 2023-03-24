@@ -24,38 +24,38 @@ contract MockYield is YieldBase {
   }
 
   function totalBalance() public view override returns (uint256) {
-    return asset.balanceOf(address(this)) + _yieldCreated();
+    return asset.balanceOf(address(this)) + _yieldCreated(0);
   }
 
-  function _onDeposit(uint256) internal override {
-    _createYield();
+  function _onDeposit(uint256 amount) internal override {
+    _createYield(amount);
   }
 
   function _onWithdraw(uint256) internal override {
-    _createYield();
+    _createYield(0);
   }
 
   function _onFullWithdraw() internal override {
-    _createYield();
+    _createYield(0);
   }
 
-  function _createYield() internal {
-    uint256 amount = _yieldCreated();
+  function _createYield(uint256 offset) internal {
+    uint256 amount = _yieldCreated(offset);
 
     if (amount == 0) return;
 
-    systemClock.time();
+    lastTick = systemClock.time();
 
     TestUSDC(address(asset)).mintAny(address(this), amount);
   }
 
-  function _yieldCreated() internal view returns (uint256) {
+  function _yieldCreated(uint256 offset) internal view returns (uint256) {
     uint256 difference = systemClock.getTime() - lastTick;
 
     if (difference == 0) return 0;
 
     return
-      (asset.balanceOf(address(this)) * difference * yieldRate) /
+      ((asset.balanceOf(address(this)) - offset) * difference * yieldRate) /
       (365.25 days * 1 ether);
   }
 }

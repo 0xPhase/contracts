@@ -28,7 +28,11 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
 
     _mint(address(this), shares);
 
-    _s.bonds[user].push(Bond(BondState.Active, amount, shares, _time(), 0));
+    uint256 time = _time();
+
+    _s.bonds[user].push(Bond(BondState.Active, amount, shares, time, 0));
+
+    emit BondCreated(user, _s.bonds[user].length - 1, amount, shares);
   }
 
   /// @inheritdoc	IBondAccounting
@@ -52,6 +56,18 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
       _transfer(address(this), msg.sender, curBond.shares);
 
       curBond.state = BondState.Exited;
+
+      emit BondExited(
+        user,
+        false,
+        index,
+        ShareLib.calculateAmount(
+          curBond.shares,
+          _totalSupply(),
+          _totalBalance()
+        ),
+        curBond.shares
+      );
     } else {
       uint256 x = (difference * 1 ether) / _s.bondDuration;
       uint256 fx = _curve(x);
@@ -61,6 +77,8 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
       _burn(address(this), curBond.shares);
 
       curBond.state = BondState.BackedOut;
+
+      emit BondExited(user, true, index, amount, 0);
     }
 
     curBond.end = curtime;
@@ -79,6 +97,8 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
     _burn(msg.sender, amount);
 
     IERC20(address(_s.cash)).safeTransfer(msg.sender, underlying);
+
+    emit BondUnwrapped(msg.sender, underlying, amount);
 
     return underlying;
   }

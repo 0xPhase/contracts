@@ -83,7 +83,10 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     if (info.deposit >= amount) {
       info.deposit -= amount;
     } else {
-      _s.balancer.withdraw(_s.asset, user, amount - info.deposit);
+      amount =
+        info.deposit +
+        _s.balancer.withdraw(_s.asset, user, amount - info.deposit);
+
       info.deposit = 0;
     }
 

@@ -33,6 +33,8 @@ contract BalancerV1 is BalancerV1Storage {
     ast.shares[user] += shares;
     ast.totalShares += shares;
 
+    emit Deposit(asset, user, amount, shares);
+
     (Offset[] memory arr, , ) = offsets(asset);
 
     if (arr.length == 0) {
@@ -86,17 +88,23 @@ contract BalancerV1 is BalancerV1Storage {
     uint256 user,
     uint256 amount
   ) public override onlyRole(VAULT_ROLE) returns (uint256) {
-    require(amount > 0, "BalancerV1: Withdrawing 0 balance");
+    require(amount > 0, "BalancerV1: Cannot withdraw 0 balance");
 
     Asset storage ast = _asset[asset];
 
     uint256 total = totalBalance(asset);
-    uint256 shares = ShareLib.calculateShares(amount, ast.totalShares, total);
 
-    require(ast.shares[user] >= shares, "BalancerV1: Not enough shares");
+    uint256 shares = MathLib.min(
+      ShareLib.calculateShares(amount, ast.totalShares, total),
+      ast.shares[user]
+    );
+
+    require(shares > 0, "BalancerV1: Cannot withdraw 0 shares");
 
     ast.shares[user] -= shares;
     ast.totalShares -= shares;
+
+    emit Withdraw(asset, user, amount, shares);
 
     if (asset.balanceOf(address(this)) >= amount) {
       asset.safeTransfer(msg.sender, amount);
@@ -196,6 +204,8 @@ contract BalancerV1 is BalancerV1Storage {
     yield.start = systemClock.time();
     yield.lastUpdate = yield.start;
     yield.state = true;
+
+    emit YieldAdded(asset, yieldSrc);
   }
 
   /// @notice Sets yield state
@@ -209,12 +219,14 @@ contract BalancerV1 is BalancerV1Storage {
 
     yield.state = state;
 
-    _updateAPR(yieldSrc);
-
     if (!state) {
       yieldSrc.fullWithdraw();
       yield.lastDeposit = 0;
     }
+
+    _updateAPR(yieldSrc);
+
+    emit YieldStateSet(yieldSrc.asset(), yieldSrc, state);
   }
 
   /// @notice Sets the performance fee
@@ -409,7 +421,7 @@ contract BalancerV1 is BalancerV1Storage {
       yield.lastUpdate = time;
       yield.lastDeposit = total;
 
-      emit YieldAPRSet(asset, time, yield.apr);
+      emit YieldAPRSet(asset, yield.apr);
 
       return;
     }
@@ -435,7 +447,7 @@ contract BalancerV1 is BalancerV1Storage {
     yield.lastUpdate = time;
     yield.lastDeposit = total;
 
-    emit YieldAPRSet(asset, time, yield.apr);
+    emit YieldAPRSet(asset, yield.apr);
   }
 
   function _calcAPR(IYield yieldSrc) internal view returns (uint256) {

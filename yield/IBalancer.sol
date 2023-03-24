@@ -35,20 +35,80 @@ struct Offset {
 }
 
 interface IBalancer {
-  event YieldAPRSet(IERC20 indexed asset, uint256 timestamp, uint256 apr);
+  /// @notice Event emitted when a deposit is made
+  /// @param asset The deposit asset
+  /// @param user The user id
+  /// @param amount The amount deposited
+  /// @param shares The amount of shares given
+  event Deposit(
+    IERC20 indexed asset,
+    uint256 indexed user,
+    uint256 amount,
+    uint256 shares
+  );
 
-  event PerformanceFeeSet(uint256 apr);
+  /// @notice Event emitted when a withdraw is made
+  /// @param asset The withdrawn asset
+  /// @param user The user id
+  /// @param amount The amount withdrawn
+  /// @param shares The amount of shares taken
+  event Withdraw(
+    IERC20 indexed asset,
+    uint256 indexed user,
+    uint256 amount,
+    uint256 shares
+  );
 
+  /// @notice Event emitted when yield apr is set
+  /// @param asset The asset
+  /// @param apr The apr
+  event YieldAPRSet(IERC20 indexed asset, uint256 apr);
+
+  /// @notice Event emitted when a new yield source is added
+  /// @param asset The asset
+  /// @param yieldSrc The yield source
+  event YieldAdded(IERC20 indexed asset, IYield indexed yieldSrc);
+
+  /// @notice Event emitted when the yield state is set
+  /// @param asset The asset
+  /// @param yieldSrc The yield source
+  /// @param state The yield state
+  event YieldStateSet(
+    IERC20 indexed asset,
+    IYield indexed yieldSrc,
+    bool state
+  );
+
+  /// @notice Event emitted when the performance fee is set
+  /// @param fee The performance fee
+  event PerformanceFeeSet(uint256 fee);
+
+  /// @notice Deposits tokens for user
+  /// @param asset The asset
+  /// @param user The user id
+  /// @param amount The amount of tokens deposited
   function deposit(IERC20 asset, uint256 user, uint256 amount) external;
 
+  /// @notice Withdraws tokens from user
+  /// @param asset The asset
+  /// @param user The user id
+  /// @param amount The amount of tokens withdrawn
+  /// @return The real amount of tokens withdrawn
   function withdraw(
     IERC20 asset,
     uint256 user,
     uint256 amount
   ) external returns (uint256);
 
+  /// @notice Fully withdraws tokens from user
+  /// @param asset The asset
+  /// @param user The user id
+  /// @return The real amount of tokens withdrawn
   function fullWithdraw(IERC20 asset, uint256 user) external returns (uint256);
 
+  /// @notice Returns the average apr for the asset
+  /// @param asset The asset
+  /// @return The average apr
   function assetAPR(IERC20 asset) external view returns (uint256);
 
   /// @notice Gets the time weighted average APR for the yield
@@ -56,23 +116,56 @@ interface IBalancer {
   /// @return The time weighted average APR
   function twaa(IYield yieldSrc) external view returns (uint256);
 
+  /// @notice Returns the total balance of the asset in the balancer
+  /// @param asset The asset
+  /// @return The total balance of the asset
   function totalBalance(IERC20 asset) external view returns (uint256);
 
+  /// @notice Returns the balance of the asset for the user
+  /// @param asset The asset
+  /// @param user The user id
+  /// @return The balance of the asset
   function balanceOf(
     IERC20 asset,
     uint256 user
   ) external view returns (uint256);
 
+  /// @notice Returns the yield sources for the asset
+  /// @param asset The asset
+  /// @return The yield sources
   function yields(IERC20 asset) external view returns (Yield[] memory);
 
+  /// @notice Returns all of the yield sources
+  /// @return All of the yield sources
   function allYields() external view returns (address[] memory);
 
+  /// @notice Gets the offsets in yield balances
+  /// @param asset The asset
+  /// @return arr The offset array
+  /// @return totalNegative The total negative offsets
+  /// @return totalPositive The total positive offsets
   function offsets(
     IERC20 asset
   )
     external
     view
     returns (Offset[] memory arr, uint256 totalNegative, uint256 totalPositive);
+
+  /// @notice Returns the system clock
+  /// @return The system clock
+  function systemClock() external view returns (ISystemClock);
+
+  /// @notice Returns the treasury
+  /// @return The treasury
+  function treasury() external view returns (ITreasury);
+
+  /// @notice Returns the performance fee
+  /// @return The performance fee
+  function performanceFee() external view returns (uint256);
+
+  /// @notice Returns the fee target account
+  /// @return The fee target account
+  function feeAccount() external view returns (uint256);
 }
 
 abstract contract BalancerV1Storage is

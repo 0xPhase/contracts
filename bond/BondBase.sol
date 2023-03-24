@@ -8,7 +8,7 @@ import {AccessControlBase} from "../diamond/AccessControl/AccessControlBase.sol"
 import {OwnableBase} from "../diamond/Ownable/OwnableBase.sol";
 import {ClockBase} from "../diamond/Clock/ClockBase.sol";
 import {ERC20Base} from "../diamond/ERC20/ERC20Base.sol";
-import {BondStorage} from "./IBond.sol";
+import {BondStorage, BondState} from "./IBond.sol";
 
 abstract contract BondBase is
   AccessControlBase,
@@ -26,6 +26,38 @@ abstract contract BondBase is
   bytes32 internal constant _MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
   BondStorage internal _s;
+
+  /// @notice Event emitted when a bond is created
+  /// @param user The user id
+  /// @param index The index of the created bond
+  /// @param amount The amount of CASH bonded
+  /// @param shares The amount of shares reserved
+  event BondCreated(
+    uint256 indexed user,
+    uint256 index,
+    uint256 amount,
+    uint256 shares
+  );
+
+  /// @notice Event emitted when a bond is exited
+  /// @param user The user id
+  /// @param early If the bond was excited before maturity
+  /// @param index The index of the bond
+  /// @param amount The amount of CASH gotten
+  /// @param shares The amount of bond shares gotten
+  event BondExited(
+    uint256 indexed user,
+    bool indexed early,
+    uint256 index,
+    uint256 amount,
+    uint256 shares
+  );
+
+  /// @notice Event emitted when bond tokens are unwrapped
+  /// @param user The user address
+  /// @param amount The amount of underlying tokens given
+  /// @param shares The amount of bond tokens burned
+  event BondUnwrapped(address indexed user, uint256 amount, uint256 shares);
 
   /// @notice Event emitted when the bond duration is set
   /// @param duration The new bond duration
