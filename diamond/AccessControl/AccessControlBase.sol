@@ -141,20 +141,21 @@ abstract contract AccessControlBase is ElementBase {
   /// @param role The role to check against
   /// @param account The account to check for
   function _checkRole(bytes32 role, address account) internal view virtual {
-    if (!_hasRole(role, account)) {
-      revert(
-        string(
-          abi.encodePacked(
-            "AccessControlBase: account ",
-            Strings.toHexString(uint160(account), 20),
-            " is missing role ",
-            Strings.toHexString(uint256(role), 32),
-            " for AccessControl ",
-            Strings.toHexString(uint160(address(this)), 20)
-          )
+    if (_hasRole(role, account) || _hasRole(_getRoleAdmin(role), account))
+      return;
+
+    revert(
+      string(
+        abi.encodePacked(
+          "AccessControlBase: account ",
+          Strings.toHexString(uint160(account), 20),
+          " is missing role ",
+          Strings.toHexString(uint256(role), 32),
+          " for AccessControl ",
+          Strings.toHexString(uint160(address(this)), 20)
         )
-      );
-    }
+      )
+    );
   }
 
   /// @notice Checks if the account has the role

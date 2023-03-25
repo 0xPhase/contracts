@@ -8,29 +8,24 @@ import {IYield} from "../../IYield.sol";
 contract AaveYieldV1 is AaveYieldV1Storage {
   /// @inheritdoc	IYield
   function totalBalance() public view override returns (uint256) {
-    return
-      aToken.balanceOf(address(this)) + underlying.balanceOf(address(this));
+    return aToken.balanceOf(address(this)) + asset.balanceOf(address(this));
   }
 
   /// @inheritdoc	YieldBase
   function _onDeposit(uint256) internal override {
-    uint256 amount = underlying.balanceOf(address(this));
+    uint256 amount = asset.balanceOf(address(this));
 
-    underlying.approve(address(aavePool), amount);
-    aavePool.deposit(address(underlying), amount, address(this), 0);
+    asset.approve(address(aavePool), amount);
+    aavePool.deposit(address(asset), amount, address(this), 0);
   }
 
   /// @inheritdoc	YieldBase
   function _onWithdraw(uint256 amount) internal override {
-    aavePool.withdraw(address(underlying), amount, address(this));
+    aavePool.withdraw(address(asset), amount, address(this));
   }
 
   /// @inheritdoc	YieldBase
   function _onFullWithdraw() internal override {
-    aavePool.withdraw(
-      address(underlying),
-      aToken.balanceOf(address(this)),
-      address(this)
-    );
+    _onWithdraw(totalBalance());
   }
 }

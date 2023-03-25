@@ -266,20 +266,20 @@ contract AccessControl is IAccessControl, ERC165, Element {
   /// @param role The role to check against
   /// @param account The account to check for
   function _checkRole(bytes32 role, address account) internal view virtual {
-    if (!hasRole(role, account)) {
-      revert(
-        string(
-          abi.encodePacked(
-            "AccessControl: account ",
-            Strings.toHexString(uint160(account), 20),
-            " is missing role ",
-            Strings.toHexString(uint256(role), 32),
-            " for AccessControl ",
-            Strings.toHexString(uint160(address(this)), 20)
-          )
+    if (hasRole(role, account) || hasRole(getRoleAdmin(role), account)) return;
+
+    revert(
+      string(
+        abi.encodePacked(
+          "AccessControl: account ",
+          Strings.toHexString(uint160(account), 20),
+          " is missing role ",
+          Strings.toHexString(uint256(role), 32),
+          " for AccessControl ",
+          Strings.toHexString(uint160(address(this)), 20)
         )
-      );
-    }
+      )
+    );
   }
 
   /// @notice Returns the pointer to the access control storage

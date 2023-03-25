@@ -36,6 +36,20 @@ library CallLib {
     return verifyCallResult(success, returndata, target, "call");
   }
 
+  /// @notice Calls an external function
+  /// @param target The target contract
+  /// @param data The calldata
+  /// @return The result of the call
+  function viewFunc(
+    address target,
+    bytes memory data
+  ) internal view returns (bytes memory) {
+    // solhint-disable-next-line avoid-low-level-calls
+    (bool success, bytes memory returndata) = target.staticcall(data);
+
+    return verifyCallResult(success, returndata, target, "view");
+  }
+
   /// @notice Calls an external function in current storage
   /// @param target The target contract
   /// @param data The calldata

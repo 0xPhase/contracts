@@ -8,30 +8,43 @@ import {IVault} from "../../../vault/IVault.sol";
 import {YieldBase} from "../base/YieldBase.sol";
 import {IDB} from "../../../db/IDB.sol";
 
-import {IAavePool} from "../../../interfaces/aave/IAavePool.sol";
+struct GenericData {
+  uint256 action;
+  bytes data;
+}
 
-abstract contract AaveYieldV1Storage is YieldBase, ProxyInitializable, Element {
-  IAavePool public aavePool;
-  IERC20 public aToken;
+abstract contract GenericYieldV1Storage is
+  YieldBase,
+  ProxyInitializable,
+  Element
+{
+  address public target;
+  GenericData public depositGeneric;
+  GenericData public withdrawGeneric;
+  GenericData public balanceGeneric;
 
   /// @notice Disables initialization on the target contract
   constructor() {
     _disableInitialization();
   }
 
-  /// @notice Initializes the aave yield contract on version 1
+  /// @notice Initializes the generic yield contract on version 1
   /// @param db_ The DB contract address
   /// @param asset_ The yield asset
-  /// @param aavePool_ The AavePool contract address
-  function initializeAaveYieldV1(
+  function initializeGenericYieldV1(
     IDB db_,
     IERC20 asset_,
-    IAavePool aavePool_
+    address target_,
+    GenericData memory depositGeneric_,
+    GenericData memory withdrawGeneric_,
+    GenericData memory balanceGeneric_
   ) external initialize("v1") {
     _initializeElement(db_);
     _initializeBaseYield(asset_, db_.getAddress("BALANCER"));
 
-    aavePool = aavePool_;
-    aToken = IERC20(aavePool_.getReserveData(address(asset_)).aTokenAddress);
+    target = target_;
+    depositGeneric = depositGeneric_;
+    withdrawGeneric = withdrawGeneric_;
+    balanceGeneric = balanceGeneric_;
   }
 }
