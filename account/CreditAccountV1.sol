@@ -5,7 +5,7 @@ import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/t
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
-import {CreditAccountStorageV1, ICreditAccount} from "../ICreditAccount.sol";
+import {CreditAccountStorageV1, ICreditAccount} from "./ICreditAccount.sol";
 
 contract CreditAccountV1 is CreditAccountStorageV1 {
   using CountersUpgradeable for CountersUpgradeable.Counter;
@@ -25,6 +25,11 @@ contract CreditAccountV1 is CreditAccountStorageV1 {
   function viewAccount(address owner) external view returns (uint256 tokenId) {
     if (balanceOf(owner) == 0) return 0;
     return tokenOfOwnerByIndex(owner, 0);
+  }
+
+  /// @inheritdoc ICreditAccount
+  function index() external view returns (uint256) {
+    return _tokenIds.current();
   }
 
   /// @inheritdoc CreditAccountStorageV1

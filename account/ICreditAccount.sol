@@ -18,12 +18,18 @@ interface ICreditAccount {
   event CreditAccountCreated(address indexed creator, uint256 tokenId);
 
   /// @notice Gets or creates the user's account
+  /// @param owner The owner address
   /// @return tokenId The id of the account
   function getAccount(address owner) external returns (uint256 tokenId);
 
   /// @notice Gets the user's account or returns 0 if no account present
+  /// @param owner The owner address
   /// @return tokenId The id of the account
   function viewAccount(address owner) external view returns (uint256 tokenId);
+
+  /// @notice Returns the next token index
+  /// @return The next token index
+  function index() external view returns (uint256);
 }
 
 abstract contract CreditAccountStorageV1 is

@@ -288,14 +288,16 @@ contract BalancerV1 is BalancerV1Storage {
     uint256 totalAPR = 0;
 
     for (uint256 i = 0; i < infoLength; i++) {
+      IYield yield = IYield(infos[i].yieldSrc);
+
+      arr[i].yieldSrc = yield;
+
       if (!infos[i].state) continue;
 
-      IYield yield = IYield(infos[i].yieldSrc);
       uint256 apr = twaa(yield);
 
       totalAPR += apr;
       arr[i].apr = apr;
-      arr[i].yieldSrc = yield;
     }
 
     if (totalAPR == 0) {
@@ -306,7 +308,7 @@ contract BalancerV1 is BalancerV1Storage {
 
     for (uint256 i = 0; i < infoLength; i++) {
       if (!infos[i].state) {
-        arr[i].isPositive = true;
+        arr[i].isPositive = false;
         arr[i].offset = 0;
 
         continue;
