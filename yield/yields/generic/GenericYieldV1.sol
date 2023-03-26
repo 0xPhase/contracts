@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {GenericYieldV1Storage} from "./IGenericYield.sol";
+import {ShareLib} from "../../../lib/ShareLib.sol";
 import {CallLib} from "../../../lib/CallLib.sol";
 import {YieldBase} from "../base/YieldBase.sol";
 import {IYield} from "../../IYield.sol";
@@ -31,8 +32,7 @@ contract GenericYieldV1 is GenericYieldV1Storage {
   }
 
   /// @inheritdoc	YieldBase
-  function _onDeposit(uint256) internal override {
-    uint256 amount = asset.balanceOf(address(this));
+  function _onDeposit(uint256 amount) internal override {
     uint256 action = depositGeneric.action;
     bytes memory data = depositGeneric.data;
 
@@ -60,7 +60,83 @@ contract GenericYieldV1 is GenericYieldV1Storage {
   }
 
   /// @inheritdoc	YieldBase
-  function _onWithdraw(uint256 amount) internal override {}
+  function _onWithdraw(uint256 amount) internal override {
+    uint256 action = withdrawGeneric.action;
+    bytes memory data = withdrawGeneric.data;
+
+    if (action >= 0 && action <= 5) {
+      if (action == 0) {
+        bytes4 selector = abi.decode(data, (bytes4));
+        data = abi.encodeWithSelector(selector);
+      } else if (action == 1) {
+        bytes4 selector = abi.decode(data, (bytes4));
+        data = abi.encodeWithSelector(selector, type(uint256).max / 2);
+      } else if (action == 2) {
+        bytes4 selector = abi.decode(data, (bytes4));
+        uint256 currentBalance = asset.balanceOf(address(this));
+
+        data = abi.encodeWithSelector(
+          selector,
+          totalBalance() - currentBalance
+        );
+      } else if (action >= 3 && action <= 4) {
+        (bytes4 withdrawSelector, bytes4 secondSelector) = abi.decode(
+          data,
+          (bytes4, bytes4)
+        );
+
+        bytes memory result = CallLib.viewFunc(
+          target,
+          abi.encodeWithSelector(secondSelector)
+        );
+
+        uint256 shares;
+
+        if (action == 3) {
+          shares = abi.decode(result, (uint256));
+        } else {
+          uint256 balance = totalBalance();
+          uint256 pps = abi.decode(result, (uint256));
+
+          shares = (balance * 1 ether) / pps;
+        }
+
+        data = abi.encodeWithSelector(withdrawSelector, shares);
+      } else if (action == 5) {
+        (
+          bytes4 withdrawSelector,
+          bytes4 shareSelector,
+          bytes4 balanceSelector
+        ) = abi.decode(data, (bytes4, bytes4, bytes4));
+
+        uint256 currentBalance = asset.balanceOf(address(this));
+
+        bytes memory shareResult = CallLib.viewFunc(
+          target,
+          abi.encodeWithSelector(shareSelector)
+        );
+
+        bytes memory balanceResult = CallLib.viewFunc(
+          target,
+          abi.encodeWithSelector(balanceSelector)
+        );
+
+        uint256 shares = ShareLib.calculateShares(
+          totalBalance() - currentBalance,
+          abi.decode(shareResult, (uint256)),
+          abi.decode(balanceResult, (uint256))
+        );
+
+        data = abi.encodeWithSelector(withdrawSelector, shares);
+      }
+    } else {
+      revert("GenericYieldV1: Generic index for withdraw out of bounds");
+    }
+
+    CallLib.callFunc(target, data);
+
+    _onDeposit(asset.balanceOf(address(this)) - amount);
+  }
 
   /// @inheritdoc	YieldBase
   function _onFullWithdraw() internal override {
