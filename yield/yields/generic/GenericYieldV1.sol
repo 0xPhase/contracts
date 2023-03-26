@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {GenericYieldV1Storage} from "./IGenericYield.sol";
 import {ShareLib} from "../../../lib/ShareLib.sol";
+import {MathLib} from "../../../lib/MathLib.sol";
 import {CallLib} from "../../../lib/CallLib.sol";
 import {YieldBase} from "../base/YieldBase.sol";
 import {IYield} from "../../IYield.sol";
@@ -135,7 +136,12 @@ contract GenericYieldV1 is GenericYieldV1Storage {
 
     CallLib.callFunc(target, data);
 
-    _onDeposit(asset.balanceOf(address(this)) - amount);
+    uint256 rawBalance = asset.balanceOf(address(this));
+    uint256 finalBalance = rawBalance - MathLib.min(rawBalance, amount);
+
+    if (finalBalance > 0) {
+      _onDeposit(finalBalance);
+    }
   }
 
   /// @inheritdoc	YieldBase
