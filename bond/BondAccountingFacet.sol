@@ -71,10 +71,16 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
     } else {
       uint256 x = (difference * 1 ether) / _s.bondDuration;
       uint256 fx = _curve(x);
+      uint256 shares = curBond.shares;
+
+      uint256 remaining = shares - ((shares * fx) / 1 ether);
+      uint256 protocolShares = (remaining * _s.protocolExitPortion) / 1 ether;
       uint256 amount = (curBond.amount * fx) / 1 ether;
 
       IERC20(address(_s.cash)).safeTransfer(msg.sender, amount);
-      _burn(address(this), curBond.shares);
+
+      _burn(address(this), shares);
+      _mint(address(_s.manager), protocolShares);
 
       curBond.state = BondState.BackedOut;
 

@@ -345,21 +345,13 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   /// @notice Returns the treasury fee
   /// @return The treasury fee
   function _treasuryFee() internal view returns (uint256) {
-    return
-      MathLib.min(
-        _s.varStorage.readUint256(VaultConstants.TREASURY_FEE),
-        0.49 ether
-      );
+    return _s.varStorage.readUint256(VaultConstants.TREASURY_FEE);
   }
 
   /// @notice Returns the rebate fee
   /// @return The rebate fee
   function _rebateFee() internal view returns (uint256) {
-    return
-      MathLib.min(
-        _s.varStorage.readUint256(VaultConstants.REBATE_FEE),
-        0.49 ether
-      );
+    return _s.varStorage.readUint256(VaultConstants.REBATE_FEE);
   }
 
   /// @notice Returns the step min deposit

@@ -12,4 +12,13 @@ contract BondSettersFacet is BondBase, IBondSetters {
     _s.bondDuration = duration;
     emit BondDurationSet(duration);
   }
+
+  /// @inheritdoc	IBondSetters
+  /// @custom:protected onlyRole(_MANAGER_ROLE)
+  function setProtocolExitPortion(
+    uint256 protocolExitPortion
+  ) external onlyRole(_MANAGER_ROLE) {
+    _s.protocolExitPortion = protocolExitPortion;
+    emit ProtocolExitPortionSet(protocolExitPortion);
+  }
 }

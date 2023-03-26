@@ -63,6 +63,10 @@ abstract contract BondBase is
   /// @param duration The new bond duration
   event BondDurationSet(uint256 indexed duration);
 
+  /// @notice Event emitted when the protocol exit portion is set
+  /// @param newProtocolExitPortion The new protocol exit portion
+  event ProtocolExitPortionSet(uint256 indexed newProtocolExitPortion);
+
   /// @notice Gets the total balance
   /// @return The total balance
   function _totalBalance() internal view returns (uint256) {

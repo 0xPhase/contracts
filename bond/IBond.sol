@@ -28,6 +28,7 @@ struct BondStorage {
   ICreditAccount creditAccount;
   IPegToken cash;
   uint256 bondDuration;
+  uint256 protocolExitPortion;
 }
 
 interface IBondAccounting {
@@ -77,6 +78,10 @@ interface IBondSetters {
   /// @notice Sets the bond duration
   /// @param duration The new bond duration
   function setBondDuration(uint256 duration) external;
+
+  /// @notice Sets the protocol exit portion
+  /// @param protocolExitPortion The new protocol exit portion
+  function setProtocolExitPortion(uint256 protocolExitPortion) external;
 }
 
 // solhint-disable-next-line no-empty-blocks

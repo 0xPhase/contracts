@@ -17,10 +17,12 @@ contract BondInitializer is BondBase, ProxyInitializable {
   /// @notice Initializes the bond contract on version 1
   /// @param db_ The protocol DB
   /// @param bondDuration_ The bond duration
+  /// @param protocolExitPortion_ The protocol exit portion
   function initializeBondV1(
     IDB db_,
-    uint256 bondDuration_
-  ) external initialize("V1") {
+    uint256 bondDuration_,
+    uint256 protocolExitPortion_
+  ) external initialize("v1") {
     _initializeElement(db_);
     _initializeClock();
     _initializeERC20("Phase Cash Bond", "zCASH");
@@ -31,10 +33,12 @@ contract BondInitializer is BondBase, ProxyInitializable {
     _s.creditAccount = ICreditAccount(db_.getAddress("CREDIT_ACCOUNT"));
     _s.cash = IPegToken(db_.getAddress("CASH"));
     _s.bondDuration = bondDuration_;
+    _s.protocolExitPortion = protocolExitPortion_;
 
     _grantRoleKey(_MANAGER_ROLE, keccak256("MANAGER"));
     _transferOwnership(managerAddress);
 
     emit BondDurationSet(bondDuration_);
+    emit ProtocolExitPortionSet(protocolExitPortion_);
   }
 }
