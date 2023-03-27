@@ -136,6 +136,8 @@ contract GenericYieldV1 is GenericYieldV1Storage {
     _onWithdraw(2 ** 160);
   }
 
+  /// @notice Returns the price per share of the vault
+  /// @return The price per share
   function _pricePerShare() internal view returns (uint256) {
     uint256 action = shareGeneric.action;
     bytes memory data = shareGeneric.data;
