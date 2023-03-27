@@ -27,6 +27,20 @@ contract GenericYieldV1 is GenericYieldV1Storage {
       uint256 balance = abi.decode(result, (uint256));
 
       return balance + asset.balanceOf(address(this));
+    } else if (action >= 2 && action <= 3) {
+      bytes4 selector = abi.decode(data, (bytes4));
+      uint256 pps = _pricePerShare();
+
+      if (action == 2) {
+        data = abi.encodeWithSelector(selector);
+      } else {
+        data = abi.encodeWithSelector(selector, address(this));
+      }
+
+      bytes memory result = CallLib.viewFunc(target, data);
+      uint256 shares = abi.decode(result, (uint256));
+
+      return ((shares * pps) / 1 ether) + asset.balanceOf(address(this));
     }
 
     revert("GenericYieldV1: Generic index for balance out of bounds");
@@ -71,7 +85,7 @@ contract GenericYieldV1 is GenericYieldV1Storage {
         data = abi.encodeWithSelector(selector);
       } else if (action == 1) {
         bytes4 selector = abi.decode(data, (bytes4));
-        data = abi.encodeWithSelector(selector, type(uint256).max / 2);
+        data = abi.encodeWithSelector(selector, 2 ** 160);
       } else if (action == 2) {
         bytes4 selector = abi.decode(data, (bytes4));
         uint256 currentBalance = asset.balanceOf(address(this));
@@ -81,54 +95,27 @@ contract GenericYieldV1 is GenericYieldV1Storage {
           totalBalance() - currentBalance
         );
       } else if (action >= 3 && action <= 4) {
-        (bytes4 withdrawSelector, bytes4 secondSelector) = abi.decode(
-          data,
-          (bytes4, bytes4)
-        );
-
-        bytes memory result = CallLib.viewFunc(
-          target,
-          abi.encodeWithSelector(secondSelector)
-        );
-
+        bytes4 selector = abi.decode(data, (bytes4));
         uint256 shares;
 
         if (action == 3) {
+          (, bytes4 shareSelector) = abi.decode(data, (bytes4, bytes4));
+
+          bytes memory result = CallLib.viewFunc(
+            target,
+            abi.encodeWithSelector(shareSelector)
+          );
+
           shares = abi.decode(result, (uint256));
         } else {
           uint256 balance = totalBalance();
-          uint256 pps = abi.decode(result, (uint256));
+          uint256 pps = _pricePerShare();
+          uint256 currentBalance = asset.balanceOf(address(this));
 
-          shares = (balance * 1 ether) / pps;
+          shares = ((balance - currentBalance) * 1 ether) / pps;
         }
 
-        data = abi.encodeWithSelector(withdrawSelector, shares);
-      } else if (action == 5) {
-        (
-          bytes4 withdrawSelector,
-          bytes4 shareSelector,
-          bytes4 balanceSelector
-        ) = abi.decode(data, (bytes4, bytes4, bytes4));
-
-        uint256 currentBalance = asset.balanceOf(address(this));
-
-        bytes memory shareResult = CallLib.viewFunc(
-          target,
-          abi.encodeWithSelector(shareSelector)
-        );
-
-        bytes memory balanceResult = CallLib.viewFunc(
-          target,
-          abi.encodeWithSelector(balanceSelector)
-        );
-
-        uint256 shares = ShareLib.calculateShares(
-          totalBalance() - currentBalance,
-          abi.decode(shareResult, (uint256)),
-          abi.decode(balanceResult, (uint256))
-        );
-
-        data = abi.encodeWithSelector(withdrawSelector, shares);
+        data = abi.encodeWithSelector(selector, shares);
       }
     } else {
       revert("GenericYieldV1: Generic index for withdraw out of bounds");
@@ -146,6 +133,45 @@ contract GenericYieldV1 is GenericYieldV1Storage {
 
   /// @inheritdoc	YieldBase
   function _onFullWithdraw() internal override {
-    _onWithdraw(totalBalance());
+    _onWithdraw(2 ** 160);
+  }
+
+  function _pricePerShare() internal view returns (uint256) {
+    uint256 action = shareGeneric.action;
+    bytes memory data = shareGeneric.data;
+
+    if (action == 0) {
+      bytes4 selector = abi.decode(data, (bytes4));
+
+      return
+        abi.decode(
+          CallLib.viewFunc(target, abi.encodeWithSelector(selector)),
+          (uint256)
+        );
+    } else if (action == 1) {
+      (bytes4 shareSelector, bytes4 balanceSelector) = abi.decode(
+        data,
+        (bytes4, bytes4)
+      );
+
+      bytes memory shareResult = CallLib.viewFunc(
+        target,
+        abi.encodeWithSelector(shareSelector)
+      );
+
+      bytes memory balanceResult = CallLib.viewFunc(
+        target,
+        abi.encodeWithSelector(balanceSelector)
+      );
+
+      return
+        ShareLib.calculateAmount(
+          1 ether,
+          abi.decode(shareResult, (uint256)),
+          abi.decode(balanceResult, (uint256))
+        );
+    }
+
+    revert("GenericYieldV1: Generic index for share out of bounds");
   }
 }

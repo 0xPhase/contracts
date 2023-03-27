@@ -22,6 +22,7 @@ abstract contract GenericYieldV1Storage is
   GenericData public depositGeneric;
   GenericData public withdrawGeneric;
   GenericData public balanceGeneric;
+  GenericData public shareGeneric;
 
   /// @notice Disables initialization on the target contract
   constructor() {
@@ -37,7 +38,8 @@ abstract contract GenericYieldV1Storage is
     address target_,
     GenericData memory depositGeneric_,
     GenericData memory withdrawGeneric_,
-    GenericData memory balanceGeneric_
+    GenericData memory balanceGeneric_,
+    GenericData memory shareGeneric_
   ) external initialize("v1") {
     _initializeElement(db_);
     _initializeBaseYield(asset_, db_.getAddress("BALANCER"));
@@ -46,5 +48,6 @@ abstract contract GenericYieldV1Storage is
     depositGeneric = depositGeneric_;
     withdrawGeneric = withdrawGeneric_;
     balanceGeneric = balanceGeneric_;
+    shareGeneric = shareGeneric_;
   }
 }
