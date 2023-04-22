@@ -10,7 +10,7 @@ contract Manager is Ownable {
     abi.encode("Manager: Call result length too long");
 
   uint256 internal constant _ADDRESS_OFFSET = 20;
-  uint256 internal constant _CALLDATA_LENGTH_OFFSET = 20;
+  uint256 internal constant _CALLDATA_LENGTH_OFFSET = 3;
   uint256 internal constant _VALUE_OFFSET = 16;
 
   /// @notice Does a batch of calls
