@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
@@ -28,11 +28,21 @@ contract AdminUpgradeableProxy is ProxyOwnable, Proxy {
   /// @param _target Address of contract for proxy
   /// @param _initialCall Optional initial calldata
   constructor(address _owner, address _target, bytes memory _initialCall) {
+    require(
+      _owner != address(0),
+      "AdminUpgradeableProxy: Owner cannot be 0 address"
+    );
+
+    require(
+      _target != address(0),
+      "AdminUpgradeableProxy: Target cannot be 0 address"
+    );
+
     _setImplementation(_target);
     _initializeOwnership(_owner);
 
     if (_initialCall.length > 0) {
-      CallLib.delegateCallFunc(address(this), _initialCall);
+      CallLib.delegateCallFunc(_target, _initialCall);
     }
   }
 
@@ -44,8 +54,8 @@ contract AdminUpgradeableProxy is ProxyOwnable, Proxy {
   /// @custom:protected onlyOwner
   function upgradeTo(
     address _newImplementation,
-    bytes memory _oldImplementationData,
-    bytes memory _newImplementationData
+    bytes calldata _oldImplementationData,
+    bytes calldata _newImplementationData
   ) external onlyOwner {
     if (_oldImplementationData.length > 0) {
       CallLib.delegateCallFunc(implementation(msg.sig), _oldImplementationData);

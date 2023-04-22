@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {LiquidationInfo} from "./IVault.sol";
 
@@ -10,6 +10,6 @@ interface ILiquidator {
   /// @return The selector of the receiveLiquidation function
   function receiveLiquidation(
     uint256 toLiquidate,
-    LiquidationInfo memory liquidationInfo
+    LiquidationInfo calldata liquidationInfo
   ) external returns (bytes4);
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 interface IERC20PermitUpgradeable {
   /**
@@ -28,7 +28,38 @@ interface IERC20PermitUpgradeable {
     address spender,
     uint256 value,
     uint256 deadline,
-    bytes memory sig
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external;
+
+  /**
+   * @dev Sets `value` as the allowance of `spender` over ``owner``'s tokens,
+   * given ``owner``'s signed approval.
+   *
+   * IMPORTANT: The same issues {IERC20-approve} has related to transaction
+   * ordering also apply here.
+   *
+   * Emits an {Approval} event.
+   *
+   * Requirements:
+   *
+   * - `spender` cannot be the zero address.
+   * - `deadline` must be a timestamp in the future.
+   * - sig must be a valid signature from `owner`
+   * over the EIP712-formatted function arguments.
+   * - the signature must use ``owner``'s current nonce (see {nonces}).
+   *
+   * For more information on the signature format, see the
+   * https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP
+   * section].
+   */
+  function permit2(
+    address owner,
+    address spender,
+    uint256 value,
+    uint256 deadline,
+    bytes calldata sig
   ) external;
 
   /**

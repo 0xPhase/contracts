@@ -1,21 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {AccessControlBase} from "../diamond/AccessControl/AccessControlBase.sol";
-import {OwnableBase} from "../diamond/Ownable/OwnableBase.sol";
 import {ClockBase} from "../diamond/Clock/ClockBase.sol";
 import {ERC20Base} from "../diamond/ERC20/ERC20Base.sol";
 import {BondStorage, BondState} from "./IBond.sol";
 
-abstract contract BondBase is
-  AccessControlBase,
-  OwnableBase,
-  ERC20Base,
-  ClockBase
-{
+abstract contract BondBase is AccessControlBase, ERC20Base, ClockBase {
   uint256 internal constant _ETH_PRECISION = 10 ** 18;
   uint256 internal constant _POWER = 2;
   uint256 internal constant _POWER_PRECISION = _ETH_PRECISION ** (_POWER - 1);

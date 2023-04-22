@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {SignatureChecker} from "@matterlabs/signature-checker/contracts/SignatureChecker.sol";
@@ -68,8 +68,8 @@ contract zkWETH is ERC20, ERC20Burnable, EIP712 {
     address spender,
     uint256 value,
     uint256 deadline,
-    bytes memory sig
-  ) public virtual {
+    bytes calldata sig
+  ) external virtual {
     require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
 
     bytes32 structHash = keccak256(

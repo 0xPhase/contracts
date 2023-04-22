@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
+import {ECDSAUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {MathUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -37,11 +38,41 @@ abstract contract ERC20VotesUpgradeable is
    * @dev Delegates votes from signer to `delegatee`
    */
   function delegateBySig(
+    address delegatee,
+    uint256 nonce,
+    uint256 expiry,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) public virtual override {
+    require(
+      block.timestamp <= expiry,
+      "ERC20VotesUpgradeable: signature expired"
+    );
+
+    address signer = ECDSAUpgradeable.recover(
+      _hashTypedDataV4(
+        keccak256(abi.encode(_DELEGATION_TYPEHASH, delegatee, nonce, expiry))
+      ),
+      v,
+      r,
+      s
+    );
+
+    require(nonce == _useNonce(signer), "ERC20VotesUpgradeable: invalid nonce");
+
+    _delegate(signer, delegatee);
+  }
+
+  /**
+   * @dev Delegates votes from signer to `delegatee`
+   */
+  function delegateBySig2(
     address delegator,
     address delegatee,
     uint256 nonce,
     uint256 expiry,
-    bytes memory sig
+    bytes calldata sig
   ) public virtual override {
     require(
       _systemClock.time() <= expiry,
@@ -52,9 +83,11 @@ abstract contract ERC20VotesUpgradeable is
       keccak256(abi.encode(_DELEGATION_TYPEHASH, delegatee, nonce, expiry))
     );
 
-    bool success = SignatureChecker.isValidSignatureNow(delegator, hash, sig);
+    require(
+      SignatureChecker.isValidSignatureNow(delegator, hash, sig),
+      "ERC20VotesUpgradeable: invalid signature"
+    );
 
-    require(success, "ERC20VotesUpgradeable: invalid signature");
     require(
       nonce == _useNonce(delegator),
       "ERC20VotesUpgradeable: invalid nonce"
@@ -97,8 +130,10 @@ abstract contract ERC20VotesUpgradeable is
   function getVotes(
     address account
   ) public view virtual override returns (uint256) {
-    uint256 pos = _checkpoints[account].length;
-    return pos == 0 ? 0 : _checkpoints[account][pos - 1].votes;
+    unchecked {
+      uint256 pos = _checkpoints[account].length;
+      return pos == 0 ? 0 : _checkpoints[account][pos - 1].votes;
+    }
   }
 
   /**
@@ -231,19 +266,26 @@ abstract contract ERC20VotesUpgradeable is
     uint256 delta
   ) private returns (uint256 oldWeight, uint256 newWeight) {
     uint256 pos = ckpts.length;
-    oldWeight = pos == 0 ? 0 : ckpts[pos - 1].votes;
+
+    unchecked {
+      oldWeight = pos == 0 ? 0 : ckpts[pos - 1].votes;
+    }
+
     newWeight = op(oldWeight, delta);
 
-    if (pos > 0 && ckpts[pos - 1].fromBlock == block.number) {
-      ckpts[pos - 1].votes = SafeCastUpgradeable.toUint224(newWeight);
-    } else {
-      ckpts.push(
-        Checkpoint({
-          fromBlock: SafeCastUpgradeable.toUint32(block.number),
-          votes: SafeCastUpgradeable.toUint224(newWeight)
-        })
-      );
+    unchecked {
+      if (pos > 0 && ckpts[pos - 1].fromBlock == block.number) {
+        ckpts[pos - 1].votes = SafeCastUpgradeable.toUint224(newWeight);
+        return (oldWeight, newWeight);
+      }
     }
+
+    ckpts.push(
+      Checkpoint({
+        fromBlock: SafeCastUpgradeable.toUint32(block.number),
+        votes: SafeCastUpgradeable.toUint224(newWeight)
+      })
+    );
   }
 
   /**
@@ -276,7 +318,9 @@ abstract contract ERC20VotesUpgradeable is
       }
     }
 
-    return high == 0 ? 0 : ckpts[high - 1].votes;
+    unchecked {
+      return high == 0 ? 0 : ckpts[high - 1].votes;
+    }
   }
 
   function _add(uint256 a, uint256 b) private pure returns (uint256) {

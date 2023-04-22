@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {OwnableStorage} from "./IOwnable.sol";
 
@@ -19,6 +19,12 @@ abstract contract OwnableBase {
   modifier onlyOwner() {
     require(msg.sender == _owner(), "OwnableBase: Not owner");
     _;
+  }
+
+  /// @notice Initializes the Ownable base contract
+  /// @param owner the initial owner account
+  function _initializeOwnable(address owner) internal {
+    _transferOwnership(owner);
   }
 
   /// @notice Transfers ownership to new owner

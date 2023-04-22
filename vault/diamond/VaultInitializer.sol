@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {DIAMOND_CUT_ROLE} from "../../diamond/AccessControl/AccessControlCutFacet.sol";
 import {ProxyInitializable} from "../../proxy/utils/ProxyInitializable.sol";
 import {ICreditAccount} from "../../account/ICreditAccount.sol";
 import {ISystemClock} from "../../clock/ISystemClock.sol";
@@ -15,6 +16,7 @@ import {Storage} from "../../misc/Storage.sol";
 import {Manager} from "../../core/Manager.sol";
 import {IInterest} from "../IInterest.sol";
 import {IBond} from "../../bond/IBond.sol";
+import {VaultStorage} from "../IVault.sol";
 import {VaultBase} from "./VaultBase.sol";
 import {IDB} from "../../db/IDB.sol";
 
@@ -53,38 +55,65 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
     address adapter_,
     bytes memory adapterData_
   ) external initialize("v1") {
+    require(
+      address(db_) != address(0),
+      "VaultInitializer: DB cannot be 0 address"
+    );
+
+    require(
+      address(varStorage_) != address(0),
+      "VaultInitializer: Variable Storage cannot be 0 address"
+    );
+
+    require(
+      address(asset_) != address(0),
+      "VaultInitializer: Asset cannot be 0 address"
+    );
+
+    require(
+      address(priceOracle_) != address(0),
+      "VaultInitializer: Price Oracle cannot be 0 address"
+    );
+
+    require(
+      address(interest_) != address(0),
+      "VaultInitializer: Interest cannot be 0 address"
+    );
+
     _initializeElement(db_);
 
     address managerAddress = db_.getAddress("MANAGER");
+    VaultStorage storage s = _s();
 
-    _s.varStorage = varStorage_;
-    _s.asset = asset_;
-    _s.priceOracle = priceOracle_;
-    _s.interest = interest_;
+    s.varStorage = varStorage_;
+    s.asset = asset_;
+    s.priceOracle = priceOracle_;
+    s.interest = interest_;
 
-    _s.systemClock = ISystemClock(db_.getAddress("SYSTEM_CLOCK"));
-    _s.manager = Manager(managerAddress);
-    _s.creditAccount = ICreditAccount(db_.getAddress("CREDIT_ACCOUNT"));
-    _s.cash = IPegToken(db_.getAddress("CASH"));
-    _s.treasury = ITreasury(db_.getAddress("TREASURY"));
-    _s.bond = IBond(db_.getAddress("BOND"));
-    _s.balancer = IBalancer(db_.getAddress("BALANCER"));
+    s.systemClock = ISystemClock(db_.getAddress("SYSTEM_CLOCK"));
+    s.manager = Manager(managerAddress);
+    s.creditAccount = ICreditAccount(db_.getAddress("CREDIT_ACCOUNT"));
+    s.cash = IPegToken(db_.getAddress("CASH"));
+    s.treasury = ITreasury(db_.getAddress("TREASURY"));
+    s.bond = IBond(db_.getAddress("BOND"));
+    s.balancer = IBalancer(db_.getAddress("BALANCER"));
 
-    _s.maxMint = initialMaxMint_;
-    _s.maxCollateralRatio = initialMaxCollateralRatio_;
-    _s.borrowFee = initialBorrowFee_;
-    _s.liquidationFee = initialLiquidationFee_;
-    _s.healthTargetMinimum = initialHealthTargetMinimum_;
-    _s.healthTargetMaximum = initialHealthTargetMaximum_;
+    s.maxMint = initialMaxMint_;
+    s.maxCollateralRatio = initialMaxCollateralRatio_;
+    s.borrowFee = initialBorrowFee_;
+    s.liquidationFee = initialLiquidationFee_;
+    s.healthTargetMinimum = initialHealthTargetMinimum_;
+    s.healthTargetMaximum = initialHealthTargetMaximum_;
 
-    _s.adapter = adapter_;
-    _s.adapterData = adapterData_;
+    s.adapter = adapter_;
+    s.adapterData = adapterData_;
 
-    _s.lastDebtUpdate = _s.systemClock.time();
+    s.lastDebtUpdate = s.systemClock.time();
+
+    _initializeAccessControlWithKey(keccak256("MANAGER"));
 
     _grantRoleKey(VaultConstants.MANAGER_ROLE, keccak256("MANAGER"));
     _grantRoleKey(VaultConstants.DEV_ROLE, keccak256("DEV"));
-    _transferOwnership(managerAddress);
 
     emit PriceOracleSet(priceOracle_);
     emit InterestSet(interest_);
@@ -99,8 +128,10 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
 
   /// @notice Initializes the target diamond to allow for cutting
   /// @param owner The diamond owner
-  function initializeVaultOwner(address owner) public initialize("owner") {
-    _transferOwnership(owner);
+  function initializeVaultOwner(address owner) public initialize("v1") {
+    require(owner != address(0), "VaultInitializer: Owner cannot be 0 address");
+
+    _grantRoleKey(DIAMOND_CUT_ROLE, keccak256("MANAGER"));
     _disableInitialization();
   }
 }

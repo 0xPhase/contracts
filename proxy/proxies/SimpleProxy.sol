@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
@@ -23,7 +23,7 @@ contract SimpleProxy is Proxy {
     _setImplementation(_target);
 
     if (_initialCall.length > 0) {
-      CallLib.delegateCallFunc(address(this), _initialCall);
+      CallLib.delegateCallFunc(_target, _initialCall);
     }
   }
 

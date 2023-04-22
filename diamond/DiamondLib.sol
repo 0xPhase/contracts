@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {IDiamondCut} from "./IDiamondCut.sol";
+import {CallLib} from "../lib/CallLib.sol";
 
 /// @notice Error emitted when the initialization reverts
 /// @param _initializationContractAddress The initializer address
@@ -225,6 +226,11 @@ library DiamondLib {
   /// @param ds The diamond storage pointer
   /// @param _facetAddress The facet address to add
   function addFacet(DiamondStorage storage ds, address _facetAddress) internal {
+    require(
+      CallLib.isContract(_facetAddress),
+      "DiamondLib: Facet must be a contract"
+    );
+
     ds.facetFunctionSelectors[_facetAddress].facetAddressPosition = ds
       .facetAddresses
       .length;
@@ -243,11 +249,12 @@ library DiamondLib {
     uint96 _selectorPosition,
     address _facetAddress
   ) internal {
-    ds
-      .selectorToFacetAndPosition[_selector]
-      .functionSelectorPosition = _selectorPosition;
+    FacetAddressAndPosition storage addressAndPosition = ds
+      .selectorToFacetAndPosition[_selector];
+
+    addressAndPosition.functionSelectorPosition = _selectorPosition;
     ds.facetFunctionSelectors[_facetAddress].functionSelectors.push(_selector);
-    ds.selectorToFacetAndPosition[_selector].facetAddress = _facetAddress;
+    addressAndPosition.facetAddress = _facetAddress;
   }
 
   /// @notice Removes a function from the diamond
@@ -270,25 +277,24 @@ library DiamondLib {
       "DiamondLib: Can't remove immutable function"
     );
 
+    FacetFunctionSelectors storage functionSelectors = ds
+      .facetFunctionSelectors[_facetAddress];
+
     // replace selector with last selector, then delete last selector
     uint256 selectorPosition = ds
       .selectorToFacetAndPosition[_selector]
       .functionSelectorPosition;
 
-    uint256 lastSelectorPosition = ds
-      .facetFunctionSelectors[_facetAddress]
-      .functionSelectors
-      .length - 1;
+    uint256 lastSelectorPosition = functionSelectors.functionSelectors.length -
+      1;
 
     // if not the same then replace _selector with lastSelector
     if (selectorPosition != lastSelectorPosition) {
-      bytes4 lastSelector = ds
-        .facetFunctionSelectors[_facetAddress]
-        .functionSelectors[lastSelectorPosition];
+      bytes4 lastSelector = functionSelectors.functionSelectors[
+        lastSelectorPosition
+      ];
 
-      ds.facetFunctionSelectors[_facetAddress].functionSelectors[
-        selectorPosition
-      ] = lastSelector;
+      functionSelectors.functionSelectors[selectorPosition] = lastSelector;
 
       ds
         .selectorToFacetAndPosition[lastSelector]
@@ -296,16 +302,14 @@ library DiamondLib {
     }
 
     // delete the last selector
-    ds.facetFunctionSelectors[_facetAddress].functionSelectors.pop();
+    functionSelectors.functionSelectors.pop();
     delete ds.selectorToFacetAndPosition[_selector];
 
     // if no more selectors for facet address then delete the facet address
     if (lastSelectorPosition == 0) {
       // replace facet address with last facet address and delete last facet address
       uint256 lastFacetAddressPosition = ds.facetAddresses.length - 1;
-      uint256 facetAddressPosition = ds
-        .facetFunctionSelectors[_facetAddress]
-        .facetAddressPosition;
+      uint256 facetAddressPosition = functionSelectors.facetAddressPosition;
 
       if (facetAddressPosition != lastFacetAddressPosition) {
         address lastFacetAddress = ds.facetAddresses[lastFacetAddressPosition];
@@ -318,7 +322,7 @@ library DiamondLib {
 
       ds.facetAddresses.pop();
 
-      delete ds.facetFunctionSelectors[_facetAddress].facetAddressPosition;
+      delete functionSelectors.facetAddressPosition;
     }
   }
 

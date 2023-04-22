@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {ITreasury, TreasuryStorageV1} from "./ITreasury.sol";
+import {ITreasury, TokenInfo, Cause} from "./ITreasury.sol";
+import {TreasuryStorageV1} from "./TreasuryStorageV1.sol";
 import {CallLib} from "../lib/CallLib.sol";
 
 contract TreasuryV1 is TreasuryStorageV1 {
+  using EnumerableSet for EnumerableSet.AddressSet;
   using SafeERC20 for IERC20;
 
   address public constant override ETH_ADDRESS =
@@ -26,16 +29,18 @@ contract TreasuryV1 is TreasuryStorageV1 {
   }
 
   /// @inheritdoc	ITreasury
+  /// @custom:protected onlyRole(MANAGER_ROLE)
   function spend(
     string memory cause,
     address token,
     uint256 amount,
     address to
-  ) external override onlyRole(MANAGER_ROLE) {
+  ) external override {
     spend(keccak256(bytes(cause)), token, amount, to);
   }
 
   /// @inheritdoc	ITreasury
+  /// @custom:protected onlyRole(MANAGER_ROLE)
   function increaseUnsafe(
     bytes32 cause,
     address token,
@@ -47,6 +52,7 @@ contract TreasuryV1 is TreasuryStorageV1 {
   /// @notice Donates any extra tokens in the current address to the cause
   /// @param cause The cause to donate to
   /// @param token The donated token address (ETH_ADDRESS for ETH)
+  /// @custom:protected onlyRole(MANAGER_ROLE)
   function donateExtra(
     bytes32 cause,
     address token
@@ -80,8 +86,13 @@ contract TreasuryV1 is TreasuryStorageV1 {
   }
 
   /// @inheritdoc	ITreasury
-  function tokens() external view override returns (address[] memory) {
-    return _globalCause.tokens;
+  function tokens() external view override returns (address[] memory arr) {
+    uint256 length = _globalCause.tokens.length();
+    arr = new address[](length);
+
+    for (uint256 i = 0; i < length; i++) {
+      arr[i] = _globalCause.tokens.at(i);
+    }
   }
 
   /// @inheritdoc	ITreasury
@@ -103,8 +114,11 @@ contract TreasuryV1 is TreasuryStorageV1 {
 
     if (token == ETH_ADDRESS) {
       require(amount == msg.value, "TreasuryV1: Message value mismatch");
+      
       increase = msg.value;
     } else {
+      require(msg.value == 0, "TreasuryV1: Message value cannot be over 0");
+
       IERC20 ercToken = IERC20(token);
       uint256 original = ercToken.balanceOf(address(this));
 
@@ -119,6 +133,7 @@ contract TreasuryV1 is TreasuryStorageV1 {
   }
 
   /// @inheritdoc	ITreasury
+  /// @custom:protected onlyRole(MANAGER_ROLE)
   function spend(
     bytes32 cause,
     address token,
@@ -130,13 +145,13 @@ contract TreasuryV1 is TreasuryStorageV1 {
       "TreasuryV1: Not enough tokens in cause"
     );
 
+    _changeToken(cause, token, amount, false);
+
     if (token == ETH_ADDRESS) {
       payable(to).call{value: amount}("");
     } else {
       IERC20(token).safeTransfer(to, amount);
     }
-
-    _changeToken(cause, token, amount, false);
 
     emit Spent(cause, token, to, amount);
   }
@@ -152,8 +167,14 @@ contract TreasuryV1 is TreasuryStorageV1 {
   /// @inheritdoc	ITreasury
   function tokens(
     bytes32 cause
-  ) public view override returns (address[] memory) {
-    return _cause[cause].tokens;
+  ) public view override returns (address[] memory arr) {
+    Cause storage strCause = _cause[cause];
+    uint256 length = strCause.tokens.length();
+    arr = new address[](length);
+
+    for (uint256 i = 0; i < length; i++) {
+      arr[i] = strCause.tokens.at(i);
+    }
   }
 
   function _changeToken(
@@ -183,8 +204,11 @@ contract TreasuryV1 is TreasuryStorageV1 {
     address tokenAddress
   ) internal {
     if (token.balance == 0 && token.set) {
+      token.set = false;
+      cause.tokens.remove(tokenAddress);
+    } else if (token.balance > 0 && !token.set) {
       token.set = true;
-      cause.tokens.push(tokenAddress);
+      cause.tokens.add(tokenAddress);
     }
   }
 }

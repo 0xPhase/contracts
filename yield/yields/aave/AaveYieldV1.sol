@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {AaveYieldV1Storage} from "./IAaveYield.sol";
 import {YieldBase} from "../base/YieldBase.sol";

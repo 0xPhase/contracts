@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {LiquidationInfo, UserInfo, IVaultLiquidation} from "../IVault.sol";
+import {LiquidationInfo, UserInfo, IVaultLiquidation, VaultStorage} from "../IVault.sol";
 import {ITreasury} from "../../treasury/ITreasury.sol";
 import {VaultConstants} from "./VaultConstants.sol";
 import {IPegToken} from "../../peg/IPegToken.sol";
@@ -20,18 +20,19 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
   function liquidateUser(
     uint256 user
   ) external override freezeCheck(true) updateDebt {
-    IERC20 asset = _s.asset;
-
-    if (_yieldDeposit(user) > 0) {
-      _s.userInfo[user].deposit += _s.balancer.fullWithdraw(asset, user);
-    }
-
     LiquidationInfo memory info = liquidationInfo(user);
 
     require(!info.solvent, "VaultLiquidationFacet: User is solvent");
 
-    ITreasury treasury = _s.treasury;
-    IPegToken cash = _s.cash;
+    VaultStorage storage s = _s();
+    IERC20 asset = s.asset;
+
+    if (_yieldDeposit(user) > 0) {
+      s.userInfo[user].deposit += s.balancer.fullWithdraw(asset, user);
+    }
+
+    ITreasury treasury = s.treasury;
+    IPegToken cash = s.cash;
 
     if (info.rebate > 0) {
       treasury.spend(
@@ -44,15 +45,15 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
 
     uint256 debtShares = ShareLib.calculateShares(
       info.borrowChange,
-      _s.totalDebtShares,
-      _s.collectiveDebt
+      s.totalDebtShares,
+      s.collectiveDebt
     );
 
-    _s.userInfo[user].deposit -= info.assetReward;
-    _s.debtShares[user] -= debtShares;
+    s.userInfo[user].deposit -= info.assetReward;
+    s.debtShares[user] -= debtShares;
 
-    _s.totalDebtShares -= debtShares;
-    _s.collectiveDebt -= info.borrowChange;
+    s.totalDebtShares -= debtShares;
+    s.collectiveDebt -= info.borrowChange;
 
     asset.safeTransfer(address(treasury), info.protocolFee);
     treasury.increaseUnsafe(
@@ -82,41 +83,70 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
     uint256 user
   ) public view override returns (LiquidationInfo memory) {
     if (_isSolvent(user)) {
-      return LiquidationInfo(true, 0, 0, 0, 0);
+      return
+        LiquidationInfo({
+          solvent: true,
+          borrowChange: 0,
+          assetReward: 0,
+          protocolFee: 0,
+          rebate: 0
+        });
     }
 
-    (uint256 borrowChange, uint256 collateralChange) = _liquidationAmount(user);
+    uint256 borrowChange = _liquidationAmount(user);
 
-    if (borrowChange == 0 || collateralChange == 0) {
-      return LiquidationInfo(true, 0, 0, 0, 0);
+    if (borrowChange == 0) {
+      return
+        LiquidationInfo({
+          solvent: true,
+          borrowChange: 0,
+          assetReward: 0,
+          protocolFee: 0,
+          rebate: 0
+        });
     }
 
-    uint256 tPrice = _price();
+    VaultStorage storage s = _s();
+    uint256 targetCollateralChange = _withFee(borrowChange);
+
+    uint256 fee = targetCollateralChange - borrowChange;
+    uint256 protocolFee = (fee * _treasuryLiquidationFee()) / 1 ether;
+
+    uint256 price = _price();
     uint256 userDeposit = _deposit(user);
-    uint256 collateralValue = _scaleFromAsset(userDeposit * tPrice) / 1 ether;
-    uint256 cappedChange = MathLib.min(collateralValue, collateralChange);
-    uint256 pureChange = _withoutFee(cappedChange);
-    uint256 totalFee = cappedChange - pureChange;
-    uint256 protocolFee = _scaleToAsset(
-      (totalFee * _treasuryLiquidationFee()) / 1 ether
-    );
+    uint256 collateralValue = _scaleFromAsset(userDeposit * price) / 1 ether;
 
+    uint256 collateralChange = MathLib.min(
+      collateralValue,
+      targetCollateralChange
+    );
     uint256 realTokens = MathLib.min(
       userDeposit,
-      _scaleToAsset((cappedChange * 1 ether) / (tPrice))
+      _scaleToAsset((collateralChange * 1 ether) / (price))
     );
 
     uint256 rebate = 0;
 
-    if (pureChange > collateralValue) {
+    if (targetCollateralChange > collateralValue) {
+      uint256 rebateBalance = s.treasury.tokenBalance(
+        VaultConstants.REBATE_CAUSE,
+        address(s.cash)
+      );
+
       rebate = MathLib.min(
-        _s.treasury.tokenBalance(VaultConstants.REBATE_CAUSE, address(_s.cash)),
-        pureChange - collateralValue
+        rebateBalance,
+        targetCollateralChange - collateralValue
       );
     }
 
     return
-      LiquidationInfo(false, borrowChange, realTokens, protocolFee, rebate);
+      LiquidationInfo({
+        solvent: false,
+        borrowChange: borrowChange,
+        assetReward: realTokens,
+        protocolFee: _scaleToAsset(protocolFee),
+        rebate: rebate
+      });
   }
 
   /// @notice Calls the liquidator with receiveLiquidation and checks if result was correct
@@ -154,43 +184,42 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
   /// @notice Returns the liquidation numbers for the user
   /// @param user The user id
   /// @return debtChange The debt change
-  /// @return collateralChange The collateral change
   function _liquidationAmount(
     uint256 user
-  ) internal view returns (uint256 debtChange, uint256 collateralChange) {
-    UserInfo storage info = _s.userInfo[user];
+  ) internal view returns (uint256 debtChange) {
+    VaultStorage storage s = _s();
+    UserInfo storage info = s.userInfo[user];
+
     uint256 collateral = _scaleFromAsset(_deposit(user) * _price()) / 1 ether;
     uint256 debt = _debtValueUser(user);
 
-    if (collateral == 0 || debt == 0) return (0, 0);
+    if (collateral == 0 || debt == 0) return 0;
 
     uint256 feefullDebt = _withFee(debt);
 
     if (debt < _stepMinDeposit() || feefullDebt >= collateral) {
-      return (debt, feefullDebt);
+      return debt;
     }
 
-    uint256 maxCollateralRatio = _s.maxCollateralRatio;
+    uint256 liquidationFee = s.liquidationFee;
+    uint256 maxCollateralRatio = s.maxCollateralRatio;
     uint256 targetHealth = info.healthTarget;
 
-    debtChange = ((1 ether *
-      (debt *
-        1 ether ** uint256(2) -
-        (collateral * targetHealth * maxCollateralRatio))) /
-      (1 ether ** uint256(3) -
-        (targetHealth * maxCollateralRatio * 1 ether) -
-        (_s.liquidationFee * targetHealth * maxCollateralRatio)));
+    uint256 scalar = 1 ether * 1 ether;
+    uint256 debtHealth = (debt * scalar) / targetHealth;
+    uint256 healthScalar = scalar / targetHealth;
+    uint256 feeMultiplier = (liquidationFee * maxCollateralRatio) / 1 ether;
 
-    collateralChange = _withFee(debtChange);
-
-    // ((y*(debt_*y^(2)-collat_*health_*mcr_))/(y^(3)-health_*mcr_*y-fee_*health_*mcr_))
+    debtChange =
+      (debtHealth - collateral * maxCollateralRatio) /
+      (healthScalar - maxCollateralRatio - feeMultiplier);
   }
 
   /// @notice Returns the amount with the liquidation fee added
   /// @param amount The base amount
   /// @return The amount with the fee
   function _withFee(uint256 amount) internal view returns (uint256) {
-    return amount + ((amount * _s.liquidationFee) / (1 ether));
+    return amount + ((amount * _s().liquidationFee) / (1 ether));
 
     // w_=x_+((x_*fee_)/(y))
   }
@@ -199,7 +228,7 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
   /// @param amount The amount with the fee
   /// @return The base amount
   function _withoutFee(uint256 amount) internal view returns (uint256) {
-    return ((amount * 1 ether) / (1 ether + _s.liquidationFee));
+    return ((amount * 1 ether) / (1 ether + _s().liquidationFee));
 
     // x_=((w_*y)/(y+fee_))
   }
@@ -209,7 +238,7 @@ contract VaultLiquidationFacet is VaultBase, IVaultLiquidation {
   function _treasuryLiquidationFee() internal view returns (uint256) {
     return
       MathLib.min(
-        _s.varStorage.readUint256(VaultConstants.LIQUIDATION_FEE),
+        _s().varStorage.readUint256(VaultConstants.LIQUIDATION_FEE),
         0.5 ether
       );
   }

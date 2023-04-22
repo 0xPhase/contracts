@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
+import {DIAMOND_CUT_ROLE} from "../diamond/AccessControl/AccessControlCutFacet.sol";
 import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
 import {ICreditAccount} from "../account/ICreditAccount.sol";
 import {IPegToken} from "../peg/IPegToken.sol";
@@ -35,8 +36,10 @@ contract BondInitializer is BondBase, ProxyInitializable {
     _s.bondDuration = bondDuration_;
     _s.protocolExitPortion = protocolExitPortion_;
 
+    _initializeAccessControlWithKey(keccak256("MANAGER"));
+
+    _grantRoleKey(DIAMOND_CUT_ROLE, keccak256("MANAGER"));
     _grantRoleKey(_MANAGER_ROLE, keccak256("MANAGER"));
-    _transferOwnership(managerAddress);
 
     emit BondDurationSet(bondDuration_);
     emit ProtocolExitPortionSet(protocolExitPortion_);

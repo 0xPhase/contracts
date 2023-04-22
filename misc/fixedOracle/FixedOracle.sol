@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+import {IOracle} from "../../oracle/IOracle.sol";
 import {IFixedOracle} from "./IFixedOracle.sol";
-import {IOracle} from "../../IOracle.sol";
 
 contract FixedOracle is Ownable, Multicall, IFixedOracle {
   mapping(address => uint256) internal _price;

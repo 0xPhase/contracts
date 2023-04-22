@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -76,7 +76,7 @@ interface IVaultAccounting {
   /// @param extraData The extra adapter data
   function addCollateral(
     uint256 amount,
-    bytes memory extraData
+    bytes calldata extraData
   ) external payable;
 
   /// @notice Adds collateral for the user
@@ -86,7 +86,7 @@ interface IVaultAccounting {
   function addCollateral(
     address user,
     uint256 amount,
-    bytes memory extraData
+    bytes calldata extraData
   ) external payable;
 
   /// @notice Gives collateral for the user
@@ -96,17 +96,17 @@ interface IVaultAccounting {
   function addCollateral(
     uint256 user,
     uint256 amount,
-    bytes memory extraData
+    bytes calldata extraData
   ) external payable;
 
   /// @notice Removes collateral from the user
   /// @param amount The amount to remove
   /// @param extraData The extra adapter data
-  function removeCollateral(uint256 amount, bytes memory extraData) external;
+  function removeCollateral(uint256 amount, bytes calldata extraData) external;
 
   /// @notice Removes all collateral from the user
   /// @param extraData The extra adapter data
-  function removeAllCollateral(bytes memory extraData) external;
+  function removeAllCollateral(bytes calldata extraData) external;
 
   /// @notice Mints for the user
   /// @param amount The amount to mint

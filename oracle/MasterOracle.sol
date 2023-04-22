@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
@@ -61,9 +61,13 @@ contract MasterOracle is Ownable, Multicall, IOracle {
 
     results = new address[](length);
 
-    for (uint256 i = 0; i < length; i++) {
+    for (uint256 i = 0; i < length; ) {
       (address asset, ) = _assets.at(i);
       results[i] = asset;
+
+      unchecked {
+        i++;
+      }
     }
   }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
@@ -16,13 +16,17 @@ contract DiamondLoupeFacet is IDiamondLoupe, IERC165 {
     uint256 numFacets = ds.facetAddresses.length;
     facets_ = new Facet[](numFacets);
 
-    for (uint256 i; i < numFacets; i++) {
+    for (uint256 i; i < numFacets; ) {
       address facetAddress_ = ds.facetAddresses[i];
 
       facets_[i].facetAddress = facetAddress_;
       facets_[i].functionSelectors = ds
         .facetFunctionSelectors[facetAddress_]
         .functionSelectors;
+
+      unchecked {
+        i++;
+      }
     }
   }
 

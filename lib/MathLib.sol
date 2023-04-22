@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 library MathLib {
   /// @notice Returns the smaller unsigned integer
@@ -63,9 +63,25 @@ library MathLib {
     if (fromDecimals == toDecimals) {
       return amount;
     } else if (fromDecimals < toDecimals) {
-      return amount * int256(uint256(10) ** uint256(toDecimals - fromDecimals));
+      uint256 diff;
+
+      unchecked {
+        diff = uint256(toDecimals - fromDecimals);
+      }
+
+      return amount * int256(uint256(10) ** diff);
     } else {
-      return amount / int256(uint256(10) ** uint256(fromDecimals - toDecimals));
+      uint256 diff;
+
+      unchecked {
+        diff = uint256(fromDecimals - toDecimals);
+      }
+
+      int256 power = int256(uint256(10) ** diff);
+
+      unchecked {
+        return amount / power;
+      }
     }
   }
 
@@ -82,11 +98,25 @@ library MathLib {
     if (fromDecimals == toDecimals) {
       return amount;
     } else if (fromDecimals < toDecimals) {
-      return
-        amount * uint256(uint256(10) ** uint256(toDecimals - fromDecimals));
+      uint256 diff;
+
+      unchecked {
+        diff = uint256(toDecimals - fromDecimals);
+      }
+
+      return amount * uint256(uint256(10) ** diff);
     } else {
-      return
-        amount / uint256(uint256(10) ** uint256(fromDecimals - toDecimals));
+      uint256 diff;
+
+      unchecked {
+        diff = uint256(fromDecimals - toDecimals);
+      }
+
+      uint256 power = uint256(uint256(10) ** diff);
+
+      unchecked {
+        return amount / power;
+      }
     }
   }
 

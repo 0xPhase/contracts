@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 interface IOracle {
   /// @notice Returns the price of the asset in dollars in 18 decimals

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -20,22 +20,21 @@ contract WETHAdapter is VaultBase, IAdapter {
   function deposit(
     uint256,
     uint256 amount,
-    uint256 value,
     bytes memory data
   ) external payable override {
     WETHAdapterData memory adapterData = abi.decode(data, (WETHAdapterData));
 
     if (adapterData.isETH) {
       require(
-        value == amount,
+        msg.value == amount,
         "WETHAdapter: Message value must equal deposit amount"
       );
 
-      IWETH(address(_s.asset)).deposit{value: amount}();
+      IWETH(address(_s().asset)).deposit{value: amount}();
     } else {
-      require(value == 0, "WETHAdapter: Message value not 0");
+      require(msg.value == 0, "WETHAdapter: Message value cannot be 0");
 
-      _s.asset.safeTransferFrom(msg.sender, address(this), amount);
+      _s().asset.safeTransferFrom(msg.sender, address(this), amount);
     }
   }
 
@@ -48,11 +47,11 @@ contract WETHAdapter is VaultBase, IAdapter {
     WETHAdapterData memory adapterData = abi.decode(data, (WETHAdapterData));
 
     if (adapterData.isETH) {
-      IWETH(address(_s.asset)).withdraw(amount);
+      IWETH(address(_s().asset)).withdraw(amount);
 
       payable(msg.sender).call{value: amount}("");
     } else {
-      _s.asset.safeTransfer(msg.sender, amount);
+      _s().asset.safeTransfer(msg.sender, amount);
     }
   }
 }

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import {IVaultSetters, VaultStorage} from "../IVault.sol";
 import {VaultConstants} from "./VaultConstants.sol";
 import {IOracle} from "../../oracle/IOracle.sol";
-import {IVaultSetters} from "../IVault.sol";
 import {IInterest} from "../IInterest.sol";
 import {VaultBase} from "./VaultBase.sol";
 
@@ -16,19 +16,20 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setHealthTarget(
     uint256 healthTarget
   ) external override updateMessageUser freezeCheck(true) updateDebt {
-    uint256 user = _s.creditAccount.getAccount(msg.sender);
+    VaultStorage storage s = _s();
+    uint256 user = s.creditAccount.getAccount(msg.sender);
 
     require(
-      healthTarget >= _s.healthTargetMinimum,
+      healthTarget >= s.healthTargetMinimum,
       "VaultSettersFacet: Health target too low"
     );
 
     require(
-      healthTarget <= _s.healthTargetMaximum,
+      healthTarget <= s.healthTargetMaximum,
       "VaultSettersFacet: Health target too high"
     );
 
-    _s.userInfo[user].healthTarget = healthTarget;
+    s.userInfo[user].healthTarget = healthTarget;
 
     emit HealthTargetSet(user, healthTarget);
   }
@@ -37,9 +38,15 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setYieldPercent(
     uint256 yieldPercent
   ) external override updateMessageUser freezeCheck(true) updateDebt {
-    uint256 user = _s.creditAccount.getAccount(msg.sender);
+    require(
+      yieldPercent <= 1 ether,
+      "VaultSettersFacet: YieldPercent cannot be over 100%"
+    );
 
-    _s.userInfo[user].yieldPercent = yieldPercent;
+    VaultStorage storage s = _s();
+    uint256 user = s.creditAccount.getAccount(msg.sender);
+
+    s.userInfo[user].yieldPercent = yieldPercent;
 
     emit YieldPercentSet(user, yieldPercent);
 
@@ -52,7 +59,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setPriceOracle(
     IOracle newPriceOracle
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
-    _s.priceOracle = newPriceOracle;
+    _s().priceOracle = newPriceOracle;
 
     emit PriceOracleSet(newPriceOracle);
   }
@@ -63,7 +70,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setInterest(
     IInterest newInterest
   ) external updateDebt onlyRole(VaultConstants.MANAGER_ROLE) {
-    _s.interest = newInterest;
+    _s().interest = newInterest;
 
     emit InterestSet(newInterest);
   }
@@ -74,7 +81,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setMaxCollateralRatio(
     uint256 newMaxCollateralRatio
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
-    _s.maxCollateralRatio = newMaxCollateralRatio;
+    _s().maxCollateralRatio = newMaxCollateralRatio;
 
     emit MaxCollateralRatioSet(newMaxCollateralRatio);
   }
@@ -85,7 +92,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setBorrowFee(
     uint256 newBorrowFee
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
-    _s.borrowFee = newBorrowFee;
+    _s().borrowFee = newBorrowFee;
 
     emit BorrowFeeSet(newBorrowFee);
   }
@@ -96,7 +103,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setLiquidationFee(
     uint256 newLiquidationFee
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
-    _s.liquidationFee = newLiquidationFee;
+    _s().liquidationFee = newLiquidationFee;
 
     emit LiquidationFeeSet(newLiquidationFee);
   }
@@ -107,7 +114,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setAdapter(
     address newAdapter
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
-    _s.adapter = newAdapter;
+    _s().adapter = newAdapter;
 
     emit AdapterSet(newAdapter);
   }
@@ -116,9 +123,9 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   /// @param newAdapterData The adapter data
   /// @custom:protected onlyRole(VaultConstants.MANAGER_ROLE)
   function setAdapterData(
-    bytes memory newAdapterData
+    bytes calldata newAdapterData
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
-    _s.adapterData = newAdapterData;
+    _s().adapterData = newAdapterData;
 
     emit AdapterDataSet(newAdapterData);
   }
@@ -129,7 +136,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setMarketState(
     bool newState
   ) external onlyRole(VaultConstants.DEV_ROLE) {
-    _s.marketsLocked = !newState;
+    _s().marketsLocked = !newState;
 
     emit MarketStateSet(newState);
   }
@@ -140,8 +147,10 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function increaseMaxMint(
     uint256 increase
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
-    _s.maxMint += increase;
+    VaultStorage storage s = _s();
 
-    emit MintIncreasedSet(_s.maxMint, increase);
+    s.maxMint += increase;
+
+    emit MintIncreasedSet(s.maxMint, increase);
   }
 }

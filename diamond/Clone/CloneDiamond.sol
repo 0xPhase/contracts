@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {OwnableBase} from "../Ownable/OwnableBase.sol";
 import {IDiamondLoupe} from "../IDiamondLoupe.sol";
@@ -32,6 +32,15 @@ contract CloneDiamond is Proxy, OwnableBase {
     address initializer_,
     bytes memory initializerData_
   ) {
+    require(owner_ != address(0), "CloneDiamond: Owner cannot be 0 address");
+
+    require(target_ != address(0), "CloneDiamond: Target cannot be 0 address");
+
+    require(
+      initializer_ != address(0),
+      "CloneDiamond: Initializer cannot be 0 address"
+    );
+
     _transferOwnership(owner_);
     _setCloneDiamondTarget(target_);
 
@@ -48,7 +57,7 @@ contract CloneDiamond is Proxy, OwnableBase {
   function changeTarget(
     address newTarget,
     address initializer_,
-    bytes memory initializerData_
+    bytes calldata initializerData_
   ) external onlyOwner {
     _setCloneDiamondTarget(newTarget);
 
@@ -63,7 +72,7 @@ contract CloneDiamond is Proxy, OwnableBase {
   /// @custom:protected onlyOwner
   function initialize(
     address initializer_,
-    bytes memory initializerData_
+    bytes calldata initializerData_
   ) external onlyOwner {
     CallLib.delegateCallFunc(initializer_, initializerData_);
   }

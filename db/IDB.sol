@@ -1,66 +1,64 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {ProxyOwnable} from "../proxy/utils/ProxyOwnable.sol";
+struct Set {
+  bool exists;
+  EnumerableSet.Bytes32Set list;
+}
+
+enum OpcodeType {
+  VALUE,
+  LENGTH,
+  CONTAINS,
+  INVERSE,
+  ADD,
+  SUB,
+  MUL,
+  DIV,
+  EQ,
+  GT,
+  LT,
+  NEQ,
+  GTE,
+  LTE,
+  AND,
+  OR,
+  NAND
+}
+
+struct Opcode {
+  OpcodeType opcode;
+  bytes data;
+}
+
+struct ValueOpcode {
+  uint256 value;
+}
+
+struct ContainsOpcode {
+  bytes32[] keys;
+}
+
+struct InverseOpcode {
+  Opcode value;
+}
+
+struct ArithmeticOperatorOpcode {
+  Opcode[] values;
+}
+
+struct ComparatorOpcode {
+  Opcode a;
+  Opcode b;
+}
+
+struct GateOpcode {
+  Opcode[] values;
+}
 
 interface IDB {
-  struct Set {
-    bool exists;
-    EnumerableSet.Bytes32Set list;
-  }
-
-  enum OpcodeType {
-    VALUE,
-    LENGTH,
-    CONTAINS,
-    INVERSE,
-    ADD,
-    SUB,
-    MUL,
-    DIV,
-    EQ,
-    GT,
-    LT,
-    NEQ,
-    GTE,
-    LTE,
-    AND,
-    OR,
-    NAND
-  }
-
-  struct Opcode {
-    OpcodeType opcode;
-    bytes data;
-  }
-
-  struct ValueOpcode {
-    uint256 value;
-  }
-
-  struct ContainsOpcode {
-    bytes32[] keys;
-  }
-
-  struct InverseOpcode {
-    Opcode value;
-  }
-
-  struct ArithmeticOperatorOpcode {
-    Opcode[] values;
-  }
-
-  struct ComparatorOpcode {
-    Opcode a;
-    Opcode b;
-  }
-
-  struct GateOpcode {
-    Opcode[] values;
-  }
-
   /// @notice Adds a key value pair
   /// @param key The key to add
   /// @param value The value to add
@@ -84,22 +82,22 @@ interface IDB {
   /// @notice Adds a list of keys with a value pairs
   /// @param keys The keys to add
   /// @param value The value to add
-  function add(bytes32[] memory keys, bytes32 value) external;
+  function add(bytes32[] calldata keys, bytes32 value) external;
 
   /// @notice Adds a list of keys with a value pairs
   /// @param keys The keys to add
   /// @param value The value to add
-  function add(bytes32[] memory keys, address value) external;
+  function add(bytes32[] calldata keys, address value) external;
 
   /// @notice Adds a key with a list of value pairs
   /// @param key The key to add
   /// @param values The values to add
-  function add(bytes32 key, bytes32[] memory values) external;
+  function add(bytes32 key, bytes32[] calldata values) external;
 
   /// @notice Adds a key with a list of value pairs
   /// @param key The key to add
   /// @param values The values to add
-  function add(bytes32 key, address[] memory values) external;
+  function add(bytes32 key, address[] calldata values) external;
 
   /// @notice Removes all pairs with the key and the key itself
   /// @param key The key to remove
@@ -119,7 +117,7 @@ interface IDB {
   /// @param opcode The opcode to execute
   /// @return result The execution result for every value
   function digest(
-    Opcode memory opcode
+    Opcode calldata opcode
   ) external view returns (bytes32[] memory result);
 
   /// @notice Gets the first value with the key
@@ -167,17 +165,4 @@ interface IDB {
   /// @param value The value of the pair
   /// @return If the pair exists
   function hasPair(bytes32 key, bytes32 value) external view returns (bool);
-}
-
-abstract contract DBV1Storage is ProxyOwnable, IDB {
-  using EnumerableSet for EnumerableSet.Bytes32Set;
-
-  mapping(bytes32 => Set) internal _keys;
-  mapping(bytes32 => Set) internal _values;
-  EnumerableSet.Bytes32Set internal _valueList;
-
-  /// @notice Disables initialization on the target contract
-  constructor() {
-    _disableInitialization();
-  }
 }

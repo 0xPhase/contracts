@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
@@ -73,11 +73,16 @@ abstract contract AccessControlBase is ElementBase {
     _;
   }
 
-  /// @notice Sets up an account with a role
-  /// @param role The role to give to the account
-  /// @param account The receiver account
-  function _setupRole(bytes32 role, address account) internal virtual {
-    _grantRoleAccount(role, account);
+  /// @notice Initializes the Access Control base with an initial admin account
+  /// @param admin The initial admin account
+  function _initializeAccessControlWithAccount(address admin) internal {
+    _grantRoleAccount(_DEFAULT_ADMIN_ROLE, admin);
+  }
+
+  /// @notice Initializes the Access Control base with an initial admin key
+  /// @param admin The initial admin key
+  function _initializeAccessControlWithKey(bytes32 admin) internal {
+    _grantRoleKey(_DEFAULT_ADMIN_ROLE, admin);
   }
 
   /// @notice Sets the admin of the role
@@ -94,9 +99,10 @@ abstract contract AccessControlBase is ElementBase {
   /// @param account The account the role is granted to
   function _grantRoleAccount(bytes32 role, address account) internal virtual {
     AccessControlStorage storage acs = _acs();
+    RoleData storage roleData = acs.roles[role];
 
-    if (!acs.roles[role].members[account]) {
-      acs.roles[role].members[account] = true;
+    if (!roleData.members[account]) {
+      roleData.members[account] = true;
       emit RoleAccountGranted(role, account, msg.sender);
     }
   }
@@ -115,9 +121,10 @@ abstract contract AccessControlBase is ElementBase {
   /// @param account The account the role is revoked from
   function _revokeRoleAccount(bytes32 role, address account) internal virtual {
     AccessControlStorage storage acs = _acs();
+    RoleData storage roleData = acs.roles[role];
 
-    if (acs.roles[role].members[account]) {
-      acs.roles[role].members[account] = false;
+    if (roleData.members[account]) {
+      roleData.members[account] = false;
       emit RoleAccountRevoked(role, account, msg.sender);
     }
   }
@@ -173,9 +180,14 @@ abstract contract AccessControlBase is ElementBase {
 
     bytes32 addr = bytes32(bytes20(account));
     uint256 length = roleData.keys.length();
+    IDB db = _db();
 
-    for (uint256 i = 0; i < length; i++) {
-      if (_db().hasPair(roleData.keys.at(i), addr)) return true;
+    for (uint256 i = 0; i < length; ) {
+      if (db.hasPair(roleData.keys.at(i), addr)) return true;
+
+      unchecked {
+        i++;
+      }
     }
 
     return false;

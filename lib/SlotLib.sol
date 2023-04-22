@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 library SlotLib {
   /// @notice Returns the slot associated with an id
   /// @param id The bytes32 id
   /// @return The storage slot
   function slot(bytes32 id) internal pure returns (bytes32) {
-    return bytes32(uint256(id) - 1);
+    unchecked {
+      return bytes32(uint256(id) - 1);
+    }
   }
 
   /// @notice Returns the slot associated with an id

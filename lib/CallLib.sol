@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 library CallLib {
   /// @notice Calls an external function without value
@@ -36,20 +37,6 @@ library CallLib {
     return verifyCallResult(success, returndata, target, "call");
   }
 
-  /// @notice Calls an external function
-  /// @param target The target contract
-  /// @param data The calldata
-  /// @return The result of the call
-  function viewFunc(
-    address target,
-    bytes memory data
-  ) internal view returns (bytes memory) {
-    // solhint-disable-next-line avoid-low-level-calls
-    (bool success, bytes memory returndata) = target.staticcall(data);
-
-    return verifyCallResult(success, returndata, target, "view");
-  }
-
   /// @notice Calls an external function in current storage
   /// @param target The target contract
   /// @param data The calldata
@@ -64,6 +51,20 @@ library CallLib {
     return verifyCallResult(success, returndata, target, "delegateCall");
   }
 
+  /// @notice Calls an external function
+  /// @param target The target contract
+  /// @param data The calldata
+  /// @return The result of the call
+  function viewFunc(
+    address target,
+    bytes memory data
+  ) internal view returns (bytes memory) {
+    // solhint-disable-next-line avoid-low-level-calls
+    (bool success, bytes memory returndata) = target.staticcall(data);
+
+    return verifyCallResult(success, returndata, target, "view");
+  }
+
   /// @notice Verifies if a contract call succeeded
   /// @param success If the call itself succeeded
   /// @param result The result of the call
@@ -75,13 +76,19 @@ library CallLib {
     bytes memory result,
     address target,
     string memory method
-  ) internal pure returns (bytes memory) {
+  ) internal view returns (bytes memory) {
     if (success) {
-      return result;
-    }
+      if (result.length == 0) {
+        // only check isContract if the call was successful and the return data is empty
+        // otherwise we already know that it was a contract
+        // TODO: Implement zkSync specific code
+        require(isContract(target), "CallLib: call to non-contract");
+      }
 
-    if (result.length == 0)
-      revert(
+      return result;
+    } else {
+      reverts(
+        result,
         string.concat(
           "CallLib: Function ",
           method,
@@ -89,10 +96,31 @@ library CallLib {
           Strings.toHexString(target)
         )
       );
+    }
+  }
 
-    // solhint-disable-next-line no-inline-assembly
-    assembly {
-      revert(add(32, result), mload(result))
+  /// @notice Verifies if the target is a contract
+  /// @param target The target to check
+  /// @return If the target is a contract
+  function isContract(address target) internal view returns (bool) {
+    // TODO: Implement zkSync specific code
+    return Address.isContract(target);
+  }
+
+  /// @notice Reverts on wrong result
+  /// @param result The byte result of the call
+  /// @param message The default revert message
+  function reverts(bytes memory result, string memory message) internal pure {
+    // Look for revert reason and bubble it up if present
+    if (result.length > 0) {
+      // The easiest way to bubble the revert reason is using memory via assembly
+      // solhint-disable-next-line no-inline-assembly
+      assembly {
+        let result_size := mload(result)
+        revert(add(32, result), result_size)
+      }
+    } else {
+      revert(message);
     }
   }
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -9,7 +9,6 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {AccessControlBase} from "../../diamond/AccessControl/AccessControlBase.sol";
 import {VaultStorage, UserInfo, IVault} from "../IVault.sol";
-import {OwnableBase} from "../../diamond/Ownable/OwnableBase.sol";
 import {ITreasury} from "../../treasury/ITreasury.sol";
 import {VaultConstants} from "./VaultConstants.sol";
 import {IPegToken} from "../../peg/IPegToken.sol";
@@ -20,11 +19,9 @@ import {MathLib} from "../../lib/MathLib.sol";
 import {IInterest} from "../IInterest.sol";
 import {IAdapter} from "../IAdapter.sol";
 
-abstract contract VaultBase is OwnableBase, AccessControlBase {
+abstract contract VaultBase is AccessControlBase {
   using EnumerableSet for EnumerableSet.AddressSet;
   using SafeERC20 for IERC20;
-
-  VaultStorage internal _s;
 
   /// @notice Event emitted when collateral is added
   /// @param user The user id
@@ -121,14 +118,16 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
 
   /// @notice Updates the current total debt
   modifier updateDebt() {
-    if (_s.collectiveDebt == 0) {
-      _s.lastDebtUpdate = _s.systemClock.time();
+    VaultStorage storage s = _s();
+
+    if (s.collectiveDebt == 0) {
+      s.lastDebtUpdate = s.systemClock.time();
     } else {
       uint256 increase = _debtIncrease();
 
       if (_mintFees(increase)) {
-        _s.collectiveDebt += increase;
-        _s.lastDebtUpdate = _s.systemClock.time();
+        s.collectiveDebt += increase;
+        s.lastDebtUpdate = s.systemClock.time();
       }
     }
 
@@ -138,12 +137,14 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   /// @notice Checks if the context or markets are locked and locks context until function is done
   /// @param isSafe Indicates if it's safe to let users do this action, even while the markets are locked
   modifier freezeCheck(bool isSafe) {
-    require(!_s.contextLocked, "VaultBase: Context locked");
-    require(!_s.marketsLocked || isSafe, "VaultBase: Markets locked");
+    VaultStorage storage s = _s();
 
-    _s.contextLocked = true;
+    require(!s.contextLocked, "VaultBase: Context locked");
+    require(!s.marketsLocked || isSafe, "VaultBase: Markets locked");
+
+    s.contextLocked = true;
     _;
-    _s.contextLocked = false;
+    s.contextLocked = false;
   }
 
   /// @notice Updates the user info
@@ -155,7 +156,7 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
 
   /// @notice Updates the user info
   modifier updateMessageUser() {
-    _updateUser(_s.creditAccount.getAccount(msg.sender));
+    _updateUser(_s().creditAccount.getAccount(msg.sender));
     _;
   }
 
@@ -164,10 +165,11 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   /// @notice Updates the user info
   /// @param user The user id
   function _updateUser(uint256 user) internal {
-    UserInfo storage info = _s.userInfo[user];
+    VaultStorage storage s = _s();
+    UserInfo storage info = s.userInfo[user];
 
     if (info.version == 0) {
-      info.healthTarget = _s.healthTargetMinimum;
+      info.healthTarget = s.healthTargetMinimum;
       info.yieldPercent = 1 ether;
 
       emit HealthTargetSet(user, info.healthTarget);
@@ -178,7 +180,8 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   }
 
   function _rebalanceYield(uint256 user) internal {
-    UserInfo storage info = _s.userInfo[user];
+    VaultStorage storage s = _s();
+    UserInfo storage info = s.userInfo[user];
 
     uint256 yield = _yieldDeposit(user);
     uint256 deposit = _pureDeposit(user);
@@ -190,19 +193,23 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
     uint256 targetDeposit = (total * (1 ether - info.yieldPercent)) / 1 ether;
 
     if (deposit > targetDeposit) {
-      uint256 amount = deposit - targetDeposit;
+      unchecked {
+        uint256 amount = deposit - targetDeposit;
 
-      _s.asset.safeTransfer(address(_s.balancer), amount);
-      _s.balancer.deposit(_s.asset, user, amount);
+        s.asset.safeTransfer(address(s.balancer), amount);
+        s.balancer.deposit(s.asset, user, amount);
 
-      info.deposit -= amount;
+        info.deposit -= amount;
+      }
     }
 
     if (yield > targetYield) {
-      uint256 amount = yield - targetYield;
+      unchecked {
+        uint256 amount = yield - targetYield;
 
-      amount = _s.balancer.withdraw(_s.asset, user, amount);
-      info.deposit += amount;
+        amount = s.balancer.withdraw(s.asset, user, amount);
+        info.deposit += amount;
+      }
     }
   }
 
@@ -220,12 +227,14 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
     if (treasuryAmount == 0 || rebateAmount == 0 || bondAmount == 0)
       return false;
 
-    IPegToken cash = _s.cash;
-    ITreasury treasury = _s.treasury;
+    VaultStorage storage s = _s();
+
+    IPegToken cash = s.cash;
+    ITreasury treasury = s.treasury;
     uint256 totalTreasury = treasuryAmount + rebateAmount;
 
     cash.mintManager(address(treasury), totalTreasury);
-    cash.mintManager(address(_s.bond), bondAmount);
+    cash.mintManager(address(s.bond), bondAmount);
 
     treasury.increaseUnsafe(
       VaultConstants.PROTOCOL_CAUSE,
@@ -245,13 +254,18 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   /// @notice Returns how much debt has increased
   /// @return The amount debt has increased
   function _debtIncrease() internal view returns (uint256) {
-    uint256 lastDebtUpdate = _s.lastDebtUpdate;
-    uint256 time = _s.systemClock.getTime();
+    VaultStorage storage s = _s();
+    uint256 lastDebtUpdate = s.lastDebtUpdate;
+    uint256 time = s.systemClock.getTime();
 
     if (time > lastDebtUpdate) {
-      uint256 difference = time - lastDebtUpdate;
+      uint256 difference;
 
-      uint256 increase = (_s.collectiveDebt * difference * _interest()) /
+      unchecked {
+        difference = time - lastDebtUpdate;
+      }
+
+      uint256 increase = (s.collectiveDebt * difference * _interest()) /
         (365.25 days * 1 ether);
 
       return increase;
@@ -280,24 +294,27 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   function _depositValue(uint256 amount) internal view returns (uint256) {
     if (amount == 0) return 0;
 
-    return
-      _scaleFromAsset(_price() * amount * _s.maxCollateralRatio) /
-      (1 ether * 1 ether);
+    uint256 scaled = _scaleFromAsset(amount);
+    uint256 baseValue = (scaled * _price()) / 1 ether;
+    uint256 value = (baseValue * _s().maxCollateralRatio) / 1 ether;
+
+    return value;
   }
 
   /// @notice Returns the user's debt value in dollars
   /// @param user The user id
   /// @return The debt value
   function _debtValueUser(uint256 user) internal view returns (uint256) {
-    return _debtValue(_s.debtShares[user]);
+    return _debtValue(_s().debtShares[user]);
   }
 
   /// @notice Returns the debt value of the shares in dollars
   /// @param shares The share count
   /// @return The debt value
   function _debtValue(uint256 shares) internal view returns (uint256) {
-    uint256 totalDebtShares = _s.totalDebtShares;
-    uint256 collectiveDebt = _s.collectiveDebt;
+    VaultStorage storage s = _s();
+    uint256 totalDebtShares = s.totalDebtShares;
+    uint256 collectiveDebt = s.collectiveDebt;
 
     if (shares == 0 || totalDebtShares == 0 || collectiveDebt == 0) return 0;
 
@@ -320,57 +337,71 @@ abstract contract VaultBase is OwnableBase, AccessControlBase {
   /// @param user The user id
   /// @return result The yield deposit
   function _yieldDeposit(uint256 user) internal view returns (uint256 result) {
-    return _s.balancer.balanceOf(_s.asset, user);
+    return _s().balancer.balanceOf(_s().asset, user);
   }
 
   /// @notice Returns the user's vault deposit in token amount
   /// @param user The user id
   /// @return The vault deposit
   function _pureDeposit(uint256 user) internal view returns (uint256) {
-    return _s.userInfo[user].deposit;
+    return _s().userInfo[user].deposit;
   }
 
   /// @notice Returns the price of the underlying asset from the oracle
   /// @return The underlying asset price
   function _price() internal view returns (uint256) {
-    return _s.priceOracle.getPrice(address(_s.asset));
+    VaultStorage storage s = _s();
+    return s.priceOracle.getPrice(address(s.asset));
   }
 
   /// @notice Returns the interest rate for the vault
   /// @return The interest rate
   function _interest() internal view returns (uint256) {
-    return _s.interest.getInterest(IVault(address(this)));
+    return _s().interest.getInterest(IVault(address(this)));
   }
 
   /// @notice Returns the treasury fee
   /// @return The treasury fee
   function _treasuryFee() internal view returns (uint256) {
-    return _s.varStorage.readUint256(VaultConstants.TREASURY_FEE);
+    return _s().varStorage.readUint256(VaultConstants.TREASURY_FEE);
   }
 
   /// @notice Returns the rebate fee
   /// @return The rebate fee
   function _rebateFee() internal view returns (uint256) {
-    return _s.varStorage.readUint256(VaultConstants.REBATE_FEE);
+    return _s().varStorage.readUint256(VaultConstants.REBATE_FEE);
   }
 
   /// @notice Returns the step min deposit
   /// @return The step min deposit
   function _stepMinDeposit() internal view returns (uint256) {
-    return _s.varStorage.readUint256(VaultConstants.STEP_MIN_DEPOSIT);
+    return _s().varStorage.readUint256(VaultConstants.STEP_MIN_DEPOSIT);
   }
 
   /// @notice Scales the amount from asset's decimals to 18 decimals
   /// @param amount The amount to scale
   /// @return The scaled amount
   function _scaleFromAsset(uint256 amount) internal view returns (uint256) {
-    return MathLib.scaleAmount(amount, ERC20(address(_s.asset)).decimals(), 18);
+    return
+      MathLib.scaleAmount(amount, ERC20(address(_s().asset)).decimals(), 18);
   }
 
   /// @notice Scales the amount from 18 decimals to asset's decimals
   /// @param amount The amount to scale
   /// @return The scaled amount
   function _scaleToAsset(uint256 amount) internal view returns (uint256) {
-    return MathLib.scaleAmount(amount, 18, ERC20(address(_s.asset)).decimals());
+    return
+      MathLib.scaleAmount(amount, 18, ERC20(address(_s().asset)).decimals());
+  }
+
+  /// @notice Returns the pointer to the vault storage
+  /// @return s Vault storage pointer
+  function _s() internal pure returns (VaultStorage storage s) {
+    bytes32 slot = VaultConstants.VAULT_STORAGE_SLOT;
+
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      s.slot := slot
+    }
   }
 }

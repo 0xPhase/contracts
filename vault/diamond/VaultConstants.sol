@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 library VaultConstants {
+  bytes32 public constant VAULT_STORAGE_SLOT =
+    bytes32(uint256(keccak256("vault.diamond.storage")) - 1);
+
   bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
   bytes32 public constant DEV_ROLE = keccak256("DEV_ROLE");
 

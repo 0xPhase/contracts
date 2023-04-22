@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {IDiamondCut} from "../IDiamondCut.sol";
 import {OwnableBase} from "./OwnableBase.sol";
@@ -12,9 +12,9 @@ contract OwnableCutFacet is OwnableBase, IDiamondCut {
   /// @param initdata The optional initializer data
   /// @custom:protected onlyOwner
   function diamondCut(
-    IDiamondCut.FacetCut[] memory cut,
+    IDiamondCut.FacetCut[] calldata cut,
     address init,
-    bytes memory initdata
+    bytes calldata initdata
   ) external override onlyOwner {
     DiamondLib.diamondCut(cut, init, initdata);
   }

@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {CreditAccountStorageV1, ICreditAccount} from "./ICreditAccount.sol";
+import {CreditAccountStorageV1} from "./CreditAccountStorageV1.sol";
+import {ICreditAccount, TransferInfo} from "./ICreditAccount.sol";
 
 contract CreditAccountV1 is CreditAccountStorageV1 {
   using CountersUpgradeable for CountersUpgradeable.Counter;
+  using EnumerableSet for EnumerableSet.AddressSet;
 
   /// @inheritdoc ICreditAccount
   function getAccount(address owner) external returns (uint256 tokenId) {
@@ -16,9 +19,90 @@ contract CreditAccountV1 is CreditAccountStorageV1 {
 
     _tokenIds.increment();
     tokenId = _tokenIds.current();
+
+    _transferAllowed = true;
     _mint(owner, tokenId);
 
     emit CreditAccountCreated(msg.sender, tokenId);
+  }
+
+  /// @inheritdoc ICreditAccount
+  function startTransfer(address to) external {
+    require(to != address(0), "CreditAccountV1: Target address cannot be 0");
+
+    require(
+      balanceOf(msg.sender) > 0,
+      "CreditAccountV1: No credit account on sender"
+    );
+
+    require(
+      balanceOf(to) == 0,
+      "CreditAccountV1: Target already has a credit account"
+    );
+
+    uint256 time = systemClock.time();
+    uint256 token = tokenOfOwnerByIndex(msg.sender, 0);
+
+    transfers[msg.sender] = TransferInfo(time, token, to);
+    _transfersTo[to].add(msg.sender);
+
+    emit TransferStarted(msg.sender, to, token, time);
+  }
+
+  /// @inheritdoc ICreditAccount
+  function cancelTransfer() external {
+    TransferInfo storage info = transfers[msg.sender];
+
+    require(info.timestamp > 0, "CreditAccountV1: Transfer does not exist");
+
+    emit TransferCancelled(msg.sender, info.to, info.token);
+
+    _transfersTo[transfers[msg.sender].to].remove(msg.sender);
+    transfers[msg.sender] = TransferInfo(0, 0, address(0));
+  }
+
+  /// @inheritdoc ICreditAccount
+  function acceptTransfer(address from) external {
+    require(
+      balanceOf(msg.sender) == 0,
+      "CreditAccountV1: Target already has a credit account"
+    );
+
+    TransferInfo storage info = transfers[from];
+
+    require(
+      info.to == msg.sender,
+      "CreditAccountV1: Target is not the message sender"
+    );
+
+    require(info.timestamp > 0, "CreditAccountV1: Transfer does not exist");
+
+    require(
+      info.timestamp + transferTime >= systemClock.time(),
+      "CreditAccountV1: Transfer expired"
+    );
+
+    uint256 token = tokenOfOwnerByIndex(from, 0);
+
+    if (info.token != token) {
+      _transfersTo[msg.sender].remove(msg.sender);
+      transfers[from] = TransferInfo(0, 0, address(0));
+      return;
+    }
+
+    _transferAllowed = true;
+    _transfersTo[msg.sender].remove(from);
+    transfers[from] = TransferInfo(0, 0, address(0));
+
+    _transfer(from, msg.sender, token);
+  }
+
+  /// @notice Sets the transfer time
+  /// @param newTransferTime The new transfer time
+  /// @custom:protected onlyOwner
+  function setTransferTime(uint256 newTransferTime) external onlyOwner {
+    transferTime = newTransferTime;
+    emit TransferTimeSet(newTransferTime);
   }
 
   /// @inheritdoc ICreditAccount
@@ -32,6 +116,26 @@ contract CreditAccountV1 is CreditAccountStorageV1 {
     return _tokenIds.current();
   }
 
+  /// @inheritdoc ICreditAccount
+  function allTransfersTo(
+    address to
+  )
+    external
+    view
+    returns (TransferInfo[] memory infos, address[] memory froms)
+  {
+    EnumerableSet.AddressSet storage set = _transfersTo[to];
+    uint256 length = set.length();
+
+    infos = new TransferInfo[](length);
+    froms = new address[](length);
+
+    for (uint256 i = 0; i < length; i++) {
+      froms[i] = set.at(i);
+      infos[i] = transfers[froms[i]];
+    }
+  }
+
   /// @inheritdoc CreditAccountStorageV1
   function _beforeTokenTransfer(
     address from,
@@ -39,6 +143,8 @@ contract CreditAccountV1 is CreditAccountStorageV1 {
     uint256 tokenId,
     uint256 batchSize
   ) internal virtual override {
+    require(_transferAllowed, "CreditAccountV1: Transfer not allowed");
+
     if (batchSize > 1) {
       revert("CreditAccountV1: Consecutive transfers not supported");
     }
@@ -47,6 +153,8 @@ contract CreditAccountV1 is CreditAccountStorageV1 {
       balanceOf(to) == 0,
       "CreditAccountV1: Target already has a credit account"
     );
+
+    _transferAllowed = false;
 
     super._beforeTokenTransfer(from, to, tokenId, batchSize);
   }

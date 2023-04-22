@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {IDB, DBV1Storage} from "../IDB.sol";
+import {IDB, Set, OpcodeType, Opcode, ValueOpcode, ContainsOpcode, InverseOpcode, ArithmeticOperatorOpcode, ComparatorOpcode, GateOpcode} from "../IDB.sol";
+import {DBV1Storage} from "../DBV1Storage.sol";
 
 contract DBV1 is DBV1Storage {
   using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -23,7 +24,7 @@ contract DBV1 is DBV1Storage {
   /// @inheritdoc	IDB
   /// @custom:protected onlyOwner
   function add(
-    bytes32[] memory keys,
+    bytes32[] calldata keys,
     address value
   ) external override onlyOwner {
     add(keys, bytes32(bytes20(value)));
@@ -33,21 +34,28 @@ contract DBV1 is DBV1Storage {
   /// @custom:protected onlyOwner
   function add(
     bytes32 key,
-    bytes32[] memory values
+    bytes32[] calldata values
   ) external override onlyOwner {
     Set storage keySet = _keys[key];
     EnumerableSet.Bytes32Set storage valueList = _valueList;
 
-    for (uint256 i = 0; i < values.length; i++) {
+    for (uint256 i = 0; i < values.length; ) {
       bytes32 value = values[i];
       Set storage valueSet = _values[value];
 
-      keySet.exists = true;
       valueSet.exists = true;
 
       keySet.list.add(value);
       valueSet.list.add(key);
       valueList.add(value);
+
+      unchecked {
+        i++;
+      }
+    }
+
+    if (values.length > 0 && !keySet.exists) {
+      keySet.exists = true;
     }
   }
 
@@ -55,10 +63,14 @@ contract DBV1 is DBV1Storage {
   /// @custom:protected onlyOwner
   function add(
     bytes32 key,
-    address[] memory values
+    address[] calldata values
   ) external override onlyOwner {
-    for (uint256 i = 0; i < values.length; i++) {
+    for (uint256 i = 0; i < values.length; ) {
       add(key, bytes32(bytes20(values[i])));
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -96,7 +108,6 @@ contract DBV1 is DBV1Storage {
 
     keySet.list.remove(value);
     valueSet.list.remove(key);
-    _valueList.remove(value);
 
     if (keySet.list.length() == 0) {
       valueSet.exists = false;
@@ -104,31 +115,37 @@ contract DBV1 is DBV1Storage {
 
     if (valueSet.list.length() == 0) {
       valueSet.exists = false;
+      _valueList.remove(value);
     }
   }
 
   /// @inheritdoc	IDB
   function digest(
-    Opcode memory opcode
+    Opcode calldata opcode
   ) external view override returns (bytes32[] memory result) {
     uint256 length = _valueList.length();
     uint256[] memory digested = _digest(opcode);
-    uint256 totalTruthy = 0;
 
-    for (uint256 i = 0; i < length; i++) {
+    uint256 truthy = 0;
+    result = new bytes32[](length);
+
+    for (uint256 i = 0; i < length; ) {
       if (digested[i] > 0) {
-        totalTruthy++;
+        result[truthy] = _valueList.at(i);
+
+        unchecked {
+          truthy++;
+        }
+      }
+
+      unchecked {
+        i++;
       }
     }
 
-    uint256 counter = 0;
-    result = new bytes32[](totalTruthy);
-
-    for (uint256 i = 0; i < length; i++) {
-      if (digested[i] > 0) {
-        result[counter] = _valueList.at(i);
-        counter++;
-      }
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      mstore(result, mload(truthy))
     }
   }
 
@@ -151,15 +168,19 @@ contract DBV1 is DBV1Storage {
     bytes32 key
   ) external view override returns (bytes32[] memory arr) {
     Set storage keySet = _keys[key];
-    if (!keySet.exists) return new bytes32[](0);
+    if (!keySet.exists) return arr;
 
     EnumerableSet.Bytes32Set storage list = keySet.list;
     uint256 length = list.length();
 
     arr = new bytes32[](length);
 
-    for (uint256 i = 0; i < length; i++) {
+    for (uint256 i = 0; i < length; ) {
       arr[i] = list.at(i);
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -168,15 +189,19 @@ contract DBV1 is DBV1Storage {
     bytes32 value
   ) external view override returns (bytes32[] memory arr) {
     Set storage valueSet = _values[value];
-    if (!valueSet.exists) return new bytes32[](0);
+    if (!valueSet.exists) return arr;
 
     EnumerableSet.Bytes32Set storage list = valueSet.list;
     uint256 length = list.length();
 
     arr = new bytes32[](length);
 
-    for (uint256 i = 0; i < length; i++) {
+    for (uint256 i = 0; i < length; ) {
       arr[i] = list.at(i);
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -196,18 +221,30 @@ contract DBV1 is DBV1Storage {
 
   /// @inheritdoc	IDB
   /// @custom:protected onlyOwner
-  function add(bytes32[] memory keys, bytes32 value) public override onlyOwner {
+  function add(
+    bytes32[] calldata keys,
+    bytes32 value
+  ) public override onlyOwner {
+    require(keys.length > 0, "DBV1: Cannot add 0 keys");
+
     Set storage valueSet = _values[value];
 
-    for (uint256 i = 0; i < keys.length; i++) {
+    for (uint256 i = 0; i < keys.length; ) {
       bytes32 key = keys[i];
       Set storage keySet = _keys[key];
 
       keySet.exists = true;
-      valueSet.exists = true;
 
       keySet.list.add(value);
       valueSet.list.add(key);
+
+      unchecked {
+        i++;
+      }
+    }
+
+    if (keys.length > 0 && !valueSet.exists) {
+      valueSet.exists = true;
     }
 
     _valueList.add(value);
@@ -257,7 +294,16 @@ contract DBV1 is DBV1Storage {
 
   /// @inheritdoc	IDB
   function getAddressB32(bytes32 key) public view override returns (address) {
-    return address(bytes20(getValueB32(key)));
+    bytes32 value = getValueB32(key);
+
+    require(
+      (value &
+        0x0000000000000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF) ==
+        bytes32(0),
+      "DBV1: Value is not an address"
+    );
+
+    return address(bytes20(value));
   }
 
   /// @inheritdoc	IDB
@@ -294,35 +340,56 @@ contract DBV1 is DBV1Storage {
     if (op == OpcodeType.VALUE) {
       ValueOpcode memory opdata = abi.decode(data, (ValueOpcode));
 
-      for (uint256 i = 0; i < length; i++) {
+      for (uint256 i = 0; i < length; ) {
         mem[i] = opdata.value;
+
+        unchecked {
+          i++;
+        }
       }
     } else if (op == OpcodeType.LENGTH) {
-      for (uint256 i = 0; i < length; i++) {
+      for (uint256 i = 0; i < length; ) {
         mem[i] = _values[_valueList.at(i)].list.length();
+
+        unchecked {
+          i++;
+        }
       }
     } else if (op == OpcodeType.CONTAINS) {
       ContainsOpcode memory opdata = abi.decode(data, (ContainsOpcode));
       uint256 klength = opdata.keys.length;
 
-      for (uint256 i = 0; i < length; i++) {
+      for (uint256 i = 0; i < length; ) {
         EnumerableSet.Bytes32Set storage keys = _values[_valueList.at(i)].list;
         bool contains = true;
 
-        for (uint256 j = 0; j < klength; j++) {
-          if (keys.contains(opdata.keys[j])) continue;
-          contains = false;
-          break;
+        for (uint256 j = 0; j < klength; ) {
+          if (!keys.contains(opdata.keys[j])) {
+            contains = false;
+            break;
+          }
+
+          unchecked {
+            j++;
+          }
         }
 
         mem[i] = contains ? 1 : 0;
+
+        unchecked {
+          i++;
+        }
       }
     } else if (op == OpcodeType.INVERSE) {
       InverseOpcode memory opdata = abi.decode(data, (InverseOpcode));
       uint256[] memory digested = _digest(opdata.value);
 
-      for (uint256 i = 0; i < length; i++) {
+      for (uint256 i = 0; i < length; ) {
         mem[i] = digested[i] > 0 ? 0 : 1;
+
+        unchecked {
+          i++;
+        }
       }
     } else if (op >= OpcodeType.ADD && op <= OpcodeType.DIV) {
       ArithmeticOperatorOpcode memory opdata = abi.decode(
@@ -332,24 +399,37 @@ contract DBV1 is DBV1Storage {
 
       uint256 olength = opdata.values.length;
 
-      for (uint256 i = 0; i < olength; i++) {
+      for (uint256 i = 0; i < olength; ) {
         uint256[] memory digested = _digest(opdata.values[i]);
 
-        for (uint256 j = 0; j < length; j++) {
+        for (uint256 j = 0; j < length; ) {
           if (i == 0) {
             mem[j] = digested[j];
+
+            unchecked {
+              j++;
+            }
+
             continue;
           }
 
           if (op == OpcodeType.ADD) {
-            mem[j] = mem[j] + digested[j];
+            mem[j] = mem[j - 1] + digested[j];
           } else if (op == OpcodeType.SUB) {
-            mem[j] = mem[j] - digested[j];
+            mem[j] = mem[j - 1] - digested[j];
           } else if (op == OpcodeType.MUL) {
-            mem[j] = mem[j] * digested[j];
+            mem[j] = mem[j - 1] * digested[j];
           } else if (op == OpcodeType.DIV) {
-            mem[j] = mem[j] / digested[j];
+            mem[j] = mem[j - 1] / digested[j];
           }
+
+          unchecked {
+            j++;
+          }
+        }
+
+        unchecked {
+          i++;
         }
       }
     } else if (op >= OpcodeType.EQ && op <= OpcodeType.LTE) {
@@ -358,7 +438,7 @@ contract DBV1 is DBV1Storage {
       uint256[] memory a = _digest(opdata.a);
       uint256[] memory b = _digest(opdata.b);
 
-      for (uint256 i = 0; i < length; i++) {
+      for (uint256 i = 0; i < length; ) {
         bool result;
 
         if (op == OpcodeType.EQ) {
@@ -376,16 +456,20 @@ contract DBV1 is DBV1Storage {
         }
 
         mem[i] = result ? 1 : 0;
+
+        unchecked {
+          i++;
+        }
       }
     } else if (op >= OpcodeType.AND && op <= OpcodeType.NAND) {
       GateOpcode memory opdata = abi.decode(data, (GateOpcode));
 
       uint256 olength = opdata.values.length;
 
-      for (uint256 i = 0; i < olength; i++) {
+      for (uint256 i = 0; i < olength; ) {
         uint256[] memory digested = _digest(opdata.values[i]);
 
-        for (uint256 j = 0; j < length; j++) {
+        for (uint256 j = 0; j < length; ) {
           if (i == 0) {
             if (op == OpcodeType.NAND) {
               mem[j] = (digested[j] > 0 ? 0 : 1);
@@ -393,16 +477,28 @@ contract DBV1 is DBV1Storage {
               mem[j] = (digested[j] > 0 ? 1 : 0);
             }
 
+            unchecked {
+              j++;
+            }
+
             continue;
           }
 
           if (op == OpcodeType.AND) {
-            mem[j] = ((mem[j] > 0) && (digested[j] > 0)) ? 1 : 0;
+            mem[j] = ((mem[j - 1] > 0) && (digested[j] > 0)) ? 1 : 0;
           } else if (op == OpcodeType.OR) {
-            mem[j] = ((mem[j] > 0) || (digested[j] > 0)) ? 1 : 0;
+            mem[j] = ((mem[j - 1] > 0) || (digested[j] > 0)) ? 1 : 0;
           } else if (op == OpcodeType.NAND) {
-            mem[j] = ((mem[j] > 0) && !(digested[j] > 0)) ? 1 : 0;
+            mem[j] = !((mem[j - 1] > 0) && (digested[j] > 0)) ? 1 : 0;
           }
+
+          unchecked {
+            j++;
+          }
+        }
+
+        unchecked {
+          i++;
         }
       }
     }

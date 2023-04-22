@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
-import {IOracle} from "../../IOracle.sol";
+import {IOracle} from "../../oracle/IOracle.sol";
 
 interface IFixedOracle is IOracle {
   /// @notice Event emitted when a price is set for an asset

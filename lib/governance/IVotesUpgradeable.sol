@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 interface IVotesUpgradeable {
   /**
@@ -29,11 +29,23 @@ interface IVotesUpgradeable {
    * @dev Delegates votes from signer to `delegatee`.
    */
   function delegateBySig(
+    address delegatee,
+    uint256 nonce,
+    uint256 expiry,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external;
+
+  /**
+   * @dev Delegates votes from signer to `delegatee`.
+   */
+  function delegateBySig2(
     address delegator,
     address delegatee,
     uint256 nonce,
     uint256 expiry,
-    bytes memory sig
+    bytes calldata sig
   ) external;
 
   /**

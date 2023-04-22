@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -42,7 +42,6 @@ contract PSMV1 is PSMV1Storage {
     }
 
     underlying.safeIncreaseAllowance(address(vault), amount);
-
     vault.addCollateral(amount, "");
 
     totalTraded += fullAmount;
@@ -70,6 +69,7 @@ contract PSMV1 is PSMV1Storage {
     }
 
     vault.removeCollateral(amount - fee, "");
+    underlying.safeTransfer(msg.sender, amount - fee);
 
     totalTraded += fullAmount;
     totalFees += fullFee;

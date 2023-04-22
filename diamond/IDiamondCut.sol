@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 interface IDiamondCut {
   // Add -> 0, Replace -> 1, Remove -> 2

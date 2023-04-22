@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {AccessControlBase} from "./AccessControlBase.sol";
 import {IDiamondCut} from "../IDiamondCut.sol";
@@ -14,9 +14,9 @@ contract AccessControlCutFacet is AccessControlBase, IDiamondCut {
   /// @param initdata The optional initializer data
   /// @custom:protected onlyRole(DIAMOND_CUT_ROLE)
   function diamondCut(
-    IDiamondCut.FacetCut[] memory cut,
+    IDiamondCut.FacetCut[] calldata cut,
     address init,
-    bytes memory initdata
+    bytes calldata initdata
   ) external override onlyRole(DIAMOND_CUT_ROLE) {
     DiamondLib.diamondCut(cut, init, initdata);
   }

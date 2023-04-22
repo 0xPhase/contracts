@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IVaultAccounting, UserInfo} from "../IVault.sol";
+import {IVaultAccounting, UserInfo, VaultStorage} from "../IVault.sol";
 import {IPegToken} from "../../peg/IPegToken.sol";
 import {ShareLib} from "../../lib/ShareLib.sol";
 import {MathLib} from "../../lib/MathLib.sol";
@@ -18,7 +18,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
   /// @inheritdoc	IVaultAccounting
   function addCollateral(
     uint256 amount,
-    bytes memory extraData
+    bytes calldata extraData
   ) public payable {
     addCollateral(msg.sender, amount, extraData);
   }
@@ -27,38 +27,39 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
   function addCollateral(
     address user,
     uint256 amount,
-    bytes memory extraData
+    bytes calldata extraData
   ) public payable {
-    addCollateral(_s.creditAccount.getAccount(user), amount, extraData);
+    addCollateral(_s().creditAccount.getAccount(user), amount, extraData);
   }
 
   /// @inheritdoc	IVaultAccounting
   function addCollateral(
     uint256 user,
     uint256 amount,
-    bytes memory extraData
+    bytes calldata extraData
   ) public payable override updateUser(user) freezeCheck(true) updateDebt {
     require(user > 0, "VaultAccountingFacet: Non existent user");
     require(amount > 0, "VaultAccountingFacet: Cannot add 0 collateral");
 
-    if (_s.adapter != address(0)) {
+    VaultStorage storage s = _s();
+
+    if (s.adapter != address(0)) {
       CallLib.delegateCallFunc(
-        _s.adapter,
+        s.adapter,
         abi.encodeWithSelector(
           IAdapter.deposit.selector,
           user,
           amount,
-          msg.value,
           extraData
         )
       );
     } else {
       require(msg.value == 0, "VaultAccountingFacet: Message value not 0");
 
-      _s.asset.safeTransferFrom(msg.sender, address(this), amount);
+      s.asset.safeTransferFrom(msg.sender, address(this), amount);
     }
 
-    _s.userInfo[user].deposit += amount;
+    s.userInfo[user].deposit += amount;
 
     emit CollateralAdded(user, amount);
 
@@ -68,11 +69,12 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
   /// @inheritdoc	IVaultAccounting
   function removeCollateral(
     uint256 amount,
-    bytes memory extraData
-  ) public override updateMessageUser freezeCheck(false) updateDebt {
-    uint256 user = _s.creditAccount.getAccount(msg.sender);
+    bytes calldata extraData
+  ) public override updateMessageUser freezeCheck(true) updateDebt {
+    VaultStorage storage s = _s();
+    uint256 user = s.creditAccount.getAccount(msg.sender);
 
-    UserInfo storage info = _s.userInfo[user];
+    UserInfo storage info = s.userInfo[user];
     uint256 total = _deposit(user);
 
     require(
@@ -81,11 +83,15 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     );
 
     if (info.deposit >= amount) {
-      info.deposit -= amount;
+      unchecked {
+        info.deposit -= amount;
+      }
     } else {
-      amount =
-        info.deposit +
-        _s.balancer.withdraw(_s.asset, user, amount - info.deposit);
+      unchecked {
+        amount =
+          info.deposit +
+          s.balancer.withdraw(s.asset, user, amount - info.deposit);
+      }
 
       info.deposit = 0;
     }
@@ -96,9 +102,9 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
     _rebalanceYield(user);
 
-    if (_s.adapter != address(0)) {
+    if (s.adapter != address(0)) {
       CallLib.delegateCallFunc(
-        _s.adapter,
+        s.adapter,
         abi.encodeWithSelector(
           IAdapter.withdraw.selector,
           user,
@@ -107,13 +113,13 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
         )
       );
     } else {
-      _s.asset.safeTransfer(msg.sender, amount);
+      s.asset.safeTransfer(msg.sender, amount);
     }
   }
 
   /// @inheritdoc	IVaultAccounting
-  function removeAllCollateral(bytes memory extraData) public override {
-    uint256 user = _s.creditAccount.getAccount(msg.sender);
+  function removeAllCollateral(bytes calldata extraData) public override {
+    uint256 user = _s().creditAccount.getAccount(msg.sender);
 
     removeCollateral(_deposit(user), extraData);
   }
@@ -122,13 +128,14 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
   function mintUSD(
     uint256 amount
   ) public override updateMessageUser freezeCheck(false) updateDebt {
-    uint256 user = _s.creditAccount.getAccount(msg.sender);
+    VaultStorage storage s = _s();
+    uint256 user = s.creditAccount.getAccount(msg.sender);
 
     require(amount > 0, "VaultAccountingFacet: Cannot mint 0 CASH");
 
     uint256 value = _depositValueUser(user);
     uint256 debt = _debtValueUser(user);
-    uint256 fee = amount - ((amount * 1 ether) / (1 ether + _s.borrowFee));
+    uint256 fee = (amount * s.borrowFee) / 1 ether;
     uint256 borrow = amount - fee;
 
     require(
@@ -137,7 +144,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
     );
 
     require(
-      _s.maxMint >= _s.collectiveDebt + amount,
+      s.maxMint >= s.collectiveDebt + amount,
       "VaultAccountingFacet: Minting over maximum mint"
     );
 
@@ -150,15 +157,15 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
     uint256 shares = ShareLib.calculateShares(
       amount,
-      _s.totalDebtShares,
-      _s.collectiveDebt
+      s.totalDebtShares,
+      s.collectiveDebt
     );
 
-    _s.collectiveDebt += amount;
-    _s.debtShares[user] += shares;
-    _s.totalDebtShares += shares;
+    s.collectiveDebt += amount;
+    s.debtShares[user] += shares;
+    s.totalDebtShares += shares;
 
-    _s.cash.mintManager(msg.sender, borrow);
+    s.cash.mintManager(msg.sender, borrow);
 
     emit USDMinted(user, amount, fee);
   }
@@ -170,7 +177,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
   /// @inheritdoc	IVaultAccounting
   function repayUSD(address user, uint256 amount) public override {
-    repayUSD(_s.creditAccount.getAccount(user), amount);
+    repayUSD(_s().creditAccount.getAccount(user), amount);
   }
 
   /// @inheritdoc	IVaultAccounting
@@ -180,11 +187,12 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
   ) public override updateUser(user) freezeCheck(true) updateDebt {
     require(amount > 0, "VaultAccountingFacet: Cannot repay 0 amount");
 
-    uint256 userShares = _s.debtShares[user];
+    VaultStorage storage s = _s();
+    uint256 userShares = s.debtShares[user];
 
     uint256 shares = MathLib.min(
       userShares,
-      ShareLib.calculateShares(amount, _s.totalDebtShares, _s.collectiveDebt)
+      ShareLib.calculateShares(amount, s.totalDebtShares, s.collectiveDebt)
     );
 
     require(shares > 0, "VaultAccountingFacet: Cannot repay 0 shares");
@@ -198,11 +206,11 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
     uint256 toRepay = _debtValue(shares);
 
-    _s.cash.burnManager(msg.sender, toRepay);
+    s.cash.burnManager(msg.sender, toRepay);
 
-    _s.collectiveDebt -= toRepay;
-    _s.debtShares[user] -= shares;
-    _s.totalDebtShares -= shares;
+    s.collectiveDebt -= toRepay;
+    s.debtShares[user] -= shares;
+    s.totalDebtShares -= shares;
 
     emit USDRepaid(user, shares, toRepay);
   }
@@ -214,7 +222,7 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
   /// @inheritdoc	IVaultAccounting
   function repayAllUSD(address user) public override {
-    repayAllUSD(_s.creditAccount.getAccount(user));
+    repayAllUSD(_s().creditAccount.getAccount(user));
   }
 
   /// @inheritdoc	IVaultAccounting

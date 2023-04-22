@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.17;
+pragma solidity =0.8.17;
 
 import {OwnableStorage, IOwnable} from "./IOwnable.sol";
 import {OwnableBase} from "./OwnableBase.sol";
