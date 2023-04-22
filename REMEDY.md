@@ -416,7 +416,7 @@
 ### IVT-01C: Multiple Top-Level Declarations
 
 - Link: https://omniscia.io/reports/0xphase-core-protocol-643d1d1f88c1770014f3a77b/code-style/IVault-IVT#IVT-01C
-- [ ] Fixed
+- [x] Fixed
 
 ### MRE-01C: Repetitive Value Literals
 
