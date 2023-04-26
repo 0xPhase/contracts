@@ -58,7 +58,7 @@ library DiamondLib {
     address _init,
     bytes memory _calldata
   ) internal {
-    for (uint256 facetIndex; facetIndex < _diamondCut.length; facetIndex++) {
+    for (uint256 facetIndex; facetIndex < _diamondCut.length; ) {
       IDiamondCut.FacetCutAction action = _diamondCut[facetIndex].action;
 
       if (action == IDiamondCut.FacetCutAction.Add) {
@@ -78,6 +78,10 @@ library DiamondLib {
         );
       } else {
         revert("DiamondLib: Incorrect FacetCutAction");
+      }
+
+      unchecked {
+        facetIndex++;
       }
     }
 
@@ -114,11 +118,7 @@ library DiamondLib {
       addFacet(ds, _facetAddress);
     }
 
-    for (
-      uint256 selectorIndex;
-      selectorIndex < _functionSelectors.length;
-      selectorIndex++
-    ) {
+    for (uint256 selectorIndex; selectorIndex < _functionSelectors.length; ) {
       bytes4 selector = _functionSelectors[selectorIndex];
 
       address oldFacetAddress = ds
@@ -133,6 +133,10 @@ library DiamondLib {
       addFunction(ds, selector, selectorPosition, _facetAddress);
 
       selectorPosition++;
+
+      unchecked {
+        selectorIndex++;
+      }
     }
   }
 
@@ -164,11 +168,7 @@ library DiamondLib {
       addFacet(ds, _facetAddress);
     }
 
-    for (
-      uint256 selectorIndex;
-      selectorIndex < _functionSelectors.length;
-      selectorIndex++
-    ) {
+    for (uint256 selectorIndex; selectorIndex < _functionSelectors.length; ) {
       bytes4 selector = _functionSelectors[selectorIndex];
 
       address oldFacetAddress = ds
@@ -184,6 +184,10 @@ library DiamondLib {
       addFunction(ds, selector, selectorPosition, _facetAddress);
 
       selectorPosition++;
+
+      unchecked {
+        selectorIndex++;
+      }
     }
   }
 
@@ -207,11 +211,7 @@ library DiamondLib {
       "DiamondLib: Remove facet address must be address(0)"
     );
 
-    for (
-      uint256 selectorIndex;
-      selectorIndex < _functionSelectors.length;
-      selectorIndex++
-    ) {
+    for (uint256 selectorIndex; selectorIndex < _functionSelectors.length; ) {
       bytes4 selector = _functionSelectors[selectorIndex];
 
       address oldFacetAddress = ds
@@ -219,6 +219,10 @@ library DiamondLib {
         .facetAddress;
 
       removeFunction(ds, oldFacetAddress, selector);
+
+      unchecked {
+        selectorIndex++;
+      }
     }
   }
 

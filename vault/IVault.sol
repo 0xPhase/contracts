@@ -9,7 +9,7 @@ import {IMulticall} from "../diamond/Multicall/IMulticall.sol";
 import {ICreditAccount} from "../account/ICreditAccount.sol";
 import {ISystemClock} from "../clock/ISystemClock.sol";
 import {ITreasury} from "../treasury/ITreasury.sol";
-import {IBalancer} from "../yield/IBalancer.sol";
+import {IBalancer} from "../balancer/IBalancer.sol";
 import {IPegToken} from "../peg/IPegToken.sol";
 import {IOracle} from "../oracle/IOracle.sol";
 import {Storage} from "../misc/Storage.sol";

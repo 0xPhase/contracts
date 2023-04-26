@@ -169,7 +169,7 @@ abstract contract VaultBase is AccessControlBase {
     UserInfo storage info = s.userInfo[user];
 
     if (info.version == 0) {
-      info.healthTarget = s.healthTargetMinimum;
+      info.healthTarget = s.healthTargetMaximum;
       info.yieldPercent = 1 ether;
 
       emit HealthTargetSet(user, info.healthTarget);

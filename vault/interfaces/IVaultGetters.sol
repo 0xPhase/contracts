@@ -7,16 +7,22 @@ import {IMulticall} from "../../diamond/Multicall/IMulticall.sol";
 import {ICreditAccount} from "../../account/ICreditAccount.sol";
 import {ISystemClock} from "../../clock/ISystemClock.sol";
 import {ITreasury} from "../../treasury/ITreasury.sol";
-import {IBalancer} from "../../yield/IBalancer.sol";
+import {IBalancer} from "../../balancer/IBalancer.sol";
 import {IPegToken} from "../../peg/IPegToken.sol";
 import {IOracle} from "../../oracle/IOracle.sol";
 import {Storage} from "../../misc/Storage.sol";
 import {Manager} from "../../core/Manager.sol";
 import {IInterest} from "../IInterest.sol";
-import {IAdapter} from "../IAdapter.sol";
 import {IBond} from "../../bond/IBond.sol";
+import {IAdapter} from "../IAdapter.sol";
+import {UserInfo} from "../IVault.sol";
 
 interface IVaultGetters {
+  /// @notice Returns the user info
+  /// @param user The user id
+  /// @return The user info
+  function userInfo(uint256 user) external view returns (UserInfo memory);
+
   /// @notice Returns if the user is solvent
   /// @param user The user id
   /// @return If the user is solvent

@@ -12,9 +12,9 @@ contract OwnableCutFacet is OwnableBase, IDiamondCut {
   /// @param initdata The optional initializer data
   /// @custom:protected onlyOwner
   function diamondCut(
-    IDiamondCut.FacetCut[] calldata cut,
+    IDiamondCut.FacetCut[] memory cut,
     address init,
-    bytes calldata initdata
+    bytes memory initdata
   ) external override onlyOwner {
     DiamondLib.diamondCut(cut, init, initdata);
   }

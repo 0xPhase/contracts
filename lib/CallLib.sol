@@ -104,7 +104,9 @@ library CallLib {
   /// @return If the target is a contract
   function isContract(address target) internal view returns (bool) {
     // TODO: Implement zkSync specific code
-    return Address.isContract(target);
+    return true;
+    // Default:
+    // return Address.isContract(target);
   }
 
   /// @notice Reverts on wrong result

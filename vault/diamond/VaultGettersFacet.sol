@@ -19,6 +19,13 @@ contract VaultGettersFacet is VaultBase, IVaultGetters {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   /// @inheritdoc	IVaultGetters
+  function userInfo(
+    uint256 user
+  ) external view override returns (UserInfo memory) {
+    return _s().userInfo[user];
+  }
+
+  /// @inheritdoc	IVaultGetters
   function isSolvent(uint256 user) external view override returns (bool) {
     return _isSolvent(user);
   }

@@ -9,7 +9,7 @@ import {ICreditAccount} from "../../account/ICreditAccount.sol";
 import {ISystemClock} from "../../clock/ISystemClock.sol";
 import {ITreasury} from "../../treasury/ITreasury.sol";
 import {VaultConstants} from "./VaultConstants.sol";
-import {IBalancer} from "../../yield/IBalancer.sol";
+import {IBalancer} from "../../balancer/IBalancer.sol";
 import {IPegToken} from "../../peg/IPegToken.sol";
 import {IOracle} from "../../oracle/IOracle.sol";
 import {Storage} from "../../misc/Storage.sol";
@@ -128,10 +128,21 @@ contract VaultInitializer is VaultBase, ProxyInitializable {
 
   /// @notice Initializes the target diamond to allow for cutting
   /// @param owner The diamond owner
-  function initializeVaultOwner(address owner) public initialize("v1") {
+  function initializeVaultOwner(
+    IDB db_,
+    address owner
+  ) public initialize("v1") {
     require(owner != address(0), "VaultInitializer: Owner cannot be 0 address");
 
+    require(
+      address(db_) != address(0),
+      "VaultInitializer: DB cannot be 0 address"
+    );
+
+    _initializeElement(db_);
+    _initializeAccessControlWithKey(keccak256("MANAGER"));
     _grantRoleKey(DIAMOND_CUT_ROLE, keccak256("MANAGER"));
+
     _disableInitialization();
   }
 }

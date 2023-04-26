@@ -14,9 +14,9 @@ contract AccessControlCutFacet is AccessControlBase, IDiamondCut {
   /// @param initdata The optional initializer data
   /// @custom:protected onlyRole(DIAMOND_CUT_ROLE)
   function diamondCut(
-    IDiamondCut.FacetCut[] calldata cut,
+    IDiamondCut.FacetCut[] memory cut,
     address init,
-    bytes calldata initdata
+    bytes memory initdata
   ) external override onlyRole(DIAMOND_CUT_ROLE) {
     DiamondLib.diamondCut(cut, init, initdata);
   }
