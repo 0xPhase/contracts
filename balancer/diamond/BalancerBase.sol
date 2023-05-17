@@ -113,16 +113,17 @@ abstract contract BalancerBase is AccessControlBase, ClockBase {
     if (totalBal == 0 || yield.lastDeposit == 0) return 0;
 
     uint256 time = _getTime();
+    uint256 start;
+    uint256 update;
 
-    uint256 start = MathLib.max(
-      time - BalancerConstants.APR_DURATION,
-      yield.start
-    );
+    unchecked {
+      start = MathLib.max(time - BalancerConstants.APR_DURATION, yield.start);
 
-    uint256 update = MathLib.max(
-      time - BalancerConstants.APR_DURATION,
-      yield.lastUpdate
-    );
+      update = MathLib.max(
+        time - BalancerConstants.APR_DURATION,
+        yield.lastUpdate
+      );
+    }
 
     if (time == update) return yield.apr;
 
@@ -132,9 +133,13 @@ abstract contract BalancerBase is AccessControlBase, ClockBase {
 
     if (total == 0 || right == 0) return 0;
 
-    uint256 increase = yield.lastDeposit > totalBal
-      ? 0
-      : totalBal - yield.lastDeposit;
+    uint256 increase;
+
+    unchecked {
+      increase = yield.lastDeposit > totalBal
+        ? 0
+        : totalBal - yield.lastDeposit;
+    }
 
     uint256 rightAPR = (increase * 365.25 days * 1 ether) /
       (yield.lastDeposit * right);

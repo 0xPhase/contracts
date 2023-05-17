@@ -64,6 +64,11 @@ contract BalancerSettersFacet is BalancerBase, IBalancerSetters {
   function setPerformanceFee(
     uint256 newPerformanceFee
   ) external override onlyRole(BalancerConstants.MANAGER_ROLE) {
+    require(
+      newPerformanceFee <= 0.1 ether,
+      "BalancerSettersFacet: Fee cannot be above 10%"
+    );
+
     _s().performanceFee = newPerformanceFee;
 
     emit PerformanceFeeSet(newPerformanceFee);

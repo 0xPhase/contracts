@@ -4,6 +4,7 @@ pragma solidity =0.8.17;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {CallLib} from "../lib/CallLib.sol";
+import {IDB} from "../db/IDB.sol";
 
 contract Manager is Ownable {
   bytes internal constant _OVERFLOW_MESSAGE =
@@ -12,6 +13,14 @@ contract Manager is Ownable {
   uint256 internal constant _ADDRESS_OFFSET = 20;
   uint256 internal constant _CALLDATA_LENGTH_OFFSET = 3;
   uint256 internal constant _VALUE_OFFSET = 16;
+
+  IDB public immutable db;
+
+  /// @notice Initializer for the Manager contract
+  /// @param db_ The DB contract
+  constructor(IDB db_) {
+    db = db_;
+  }
 
   /// @notice Does a batch of calls
   /// @param data The compressed and optimized call list
@@ -40,6 +49,7 @@ contract Manager is Ownable {
       }
 
       bytes memory callResult = CallLib.callFunc(
+        db,
         target,
         data[offset:offset + callDataLength],
         value

@@ -3,17 +3,21 @@ pragma solidity =0.8.17;
 
 import {IDiamondCut} from "./IDiamondCut.sol";
 import {DiamondLib} from "./DiamondLib.sol";
+import {IDB} from "../db/IDB.sol";
 
 contract Diamond {
   /// @notice The constructor for the Diamond contract
+  /// @param db The DB contract
   /// @param cut The list of cuts to do
   /// @param init The optional initializer address
   /// @param initdata The optional initializer data
   constructor(
+    IDB db,
     IDiamondCut.FacetCut[] memory cut,
     address init,
     bytes memory initdata
   ) payable {
+    DiamondLib.initializeDiamond(db);
     DiamondLib.diamondCut(cut, init, initdata);
   }
 

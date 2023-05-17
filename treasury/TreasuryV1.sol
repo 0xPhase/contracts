@@ -148,7 +148,7 @@ contract TreasuryV1 is TreasuryStorageV1 {
     _changeToken(cause, token, amount, false);
 
     if (token == ETH_ADDRESS) {
-      payable(to).call{value: amount}("");
+      CallLib.transferTo(to, amount);
     } else {
       IERC20(token).safeTransfer(to, amount);
     }

@@ -27,11 +27,17 @@ struct Yield {
   bool state;
 }
 
+enum OffsetState {
+  None,
+  Positive,
+  Negative
+}
+
 struct Offset {
   IYield yieldSrc;
   uint256 apr;
   uint256 offset;
-  bool isPositive;
+  OffsetState state;
 }
 
 struct BalancerStorage {

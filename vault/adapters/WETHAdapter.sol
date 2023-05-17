@@ -48,8 +48,7 @@ contract WETHAdapter is VaultBase, IAdapter {
 
     if (adapterData.isETH) {
       IWETH(address(_s().asset)).withdraw(amount);
-
-      payable(msg.sender).call{value: amount}("");
+      CallLib.transferTo(msg.sender, amount);
     } else {
       _s().asset.safeTransfer(msg.sender, amount);
     }

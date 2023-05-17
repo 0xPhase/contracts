@@ -174,8 +174,8 @@
 ### CLB-01M: Weak Validation of Call Result
 
 - Link: https://omniscia.io/reports/0xphase-core-protocol-643d1d1f88c1770014f3a77b/manual-review/CallLib-CLB#CLB-01M
-- Notes: Will fix once fix is found (currently a TODO in `CallLib::isContract`)
-- [ ] Fixed
+- Notes: Fixed by zkSync Era implementing the `EXTCODESIZE` opcode and making OZ's check work again.
+- [x] Fixed
 
 ### DBV-01M: Incorrect Addition of Value
 
@@ -269,8 +269,8 @@
 ### VBE-01M: Unknown Integration Points
 
 - Link: https://omniscia.io/reports/0xphase-core-protocol-643d1d1f88c1770014f3a77b/manual-review/VaultBase-VBE#VBE-01M
-- Notes: To be fixed and replaced in the extra audit
-- [x] Aknowledged
+- Notes: Audit of integration exists
+- [x] Fixed
 
 ### VIR-01M: Improper Initializer Definition
 
@@ -281,8 +281,8 @@
 ### VLF-01M: Unknown Integration Point
 
 - Link: https://omniscia.io/reports/0xphase-core-protocol-643d1d1f88c1770014f3a77b/manual-review/VaultLiquidationFacet-VLF#VLF-01M
-- Notes: To be fixed and replaced in the extra audit
-- [x] Aknowledged
+- Notes: Audit of integration exists
+- [x] Fixed
 
 # Code Style
 

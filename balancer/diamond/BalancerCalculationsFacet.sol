@@ -5,7 +5,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IBalancerCalculations} from "../interfaces/IBalancerCalculations.sol";
-import {Offset, Yield, Asset, BalancerStorage} from "../IBalancer.sol";
+import {Offset, Yield, Asset, BalancerStorage, OffsetState} from "../IBalancer.sol";
 import {IBalancerGetters} from "../interfaces/IBalancerGetters.sol";
 import {BalancerConstants} from "./BalancerConstants.sol";
 import {BalancerBase} from "./BalancerBase.sol";
@@ -68,9 +68,6 @@ contract BalancerCalculationsFacet is BalancerBase, IBalancerCalculations {
 
     for (uint256 i = 0; i < infoLength; ) {
       if (!infos[i].state) {
-        arr[i].isPositive = false;
-        arr[i].offset = 0;
-
         unchecked {
           i++;
         }
@@ -82,15 +79,23 @@ contract BalancerCalculationsFacet is BalancerBase, IBalancerCalculations {
       uint256 targetBalance = (averagePerAPR * arr[i].apr) / 1 ether;
 
       if (yieldBalance >= targetBalance) {
-        uint256 offset = yieldBalance - targetBalance;
+        uint256 offset;
 
-        arr[i].isPositive = true;
+        unchecked {
+          offset = yieldBalance - targetBalance;
+        }
+
+        arr[i].state = OffsetState.Positive;
         arr[i].offset = offset;
         totalPositive += offset;
       } else {
-        uint256 offset = targetBalance - yieldBalance;
+        uint256 offset;
 
-        arr[i].isPositive = false;
+        unchecked {
+          offset = targetBalance - yieldBalance;
+        }
+
+        arr[i].state = OffsetState.Negative;
         arr[i].offset = offset;
         totalNegative += offset;
       }
@@ -157,7 +162,7 @@ contract BalancerCalculationsFacet is BalancerBase, IBalancerCalculations {
       return 0;
     }
 
-    if ((_getTime() - info.start) < BalancerConstants.APR_MIN_TIME) {
+    if (_getTime() - info.start < BalancerConstants.APR_MIN_TIME) {
       return BalancerConstants.APR_DEFAULT;
     }
 

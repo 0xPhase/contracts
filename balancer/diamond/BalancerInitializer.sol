@@ -29,6 +29,11 @@ contract BalancerInitializer is BalancerBase, ProxyInitializable {
       "BalancerInitializer: DB cannot be 0 address"
     );
 
+    require(
+      initialPerformanceFee_ <= 0.1 ether,
+      "BalancerInitializer: Fee cannot be above 10%"
+    );
+
     _initializeElement(db_);
     _initializeClock();
 

@@ -5,6 +5,16 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 library CallLib {
+  /// @notice Transfers the amount to the target address
+  /// @param target The target address
+  /// @param amount The amount to transfer
+  function transferTo(address target, uint256 amount) internal {
+    // solhint-disable-next-line avoid-low-level-calls
+    (bool success, ) = payable(target).call{value: amount}("");
+
+    require(success, "CallLib: Unsuccessful transfer");
+  }
+
   /// @notice Calls an external function without value
   /// @param target The target contract
   /// @param data The calldata
@@ -81,8 +91,7 @@ library CallLib {
       if (result.length == 0) {
         // only check isContract if the call was successful and the return data is empty
         // otherwise we already know that it was a contract
-        // TODO: Implement zkSync specific code
-        require(isContract(target), "CallLib: call to non-contract");
+        require(Address.isContract(target), "CallLib: call to non-contract");
       }
 
       return result;
@@ -97,16 +106,6 @@ library CallLib {
         )
       );
     }
-  }
-
-  /// @notice Verifies if the target is a contract
-  /// @param target The target to check
-  /// @return If the target is a contract
-  function isContract(address target) internal view returns (bool) {
-    // TODO: Implement zkSync specific code
-    return true;
-    // Default:
-    // return Address.isContract(target);
   }
 
   /// @notice Reverts on wrong result

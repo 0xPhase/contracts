@@ -2,8 +2,15 @@
 pragma solidity =0.8.17;
 
 import {CallLib} from "../lib/CallLib.sol";
+import {IDB} from "../db/IDB.sol";
 
 contract User {
+  IDB internal immutable _db;
+
+  constructor(IDB db_) {
+    _db = db_;
+  }
+
   /// @notice only used for tests!
   function batchCall(
     bytes calldata data
@@ -26,6 +33,7 @@ contract User {
       }
 
       bytes memory callResult = CallLib.callFunc(
+        _db,
         target,
         data[offset:offset + callDataLength],
         value

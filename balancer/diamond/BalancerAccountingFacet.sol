@@ -5,7 +5,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IBalancerAccounting} from "../interfaces/IBalancerAccounting.sol";
-import {Asset, Offset, Yield, BalancerStorage} from "../IBalancer.sol";
+import {Asset, Offset, Yield, BalancerStorage, OffsetState} from "../IBalancer.sol";
 import {BalancerConstants} from "./BalancerConstants.sol";
 import {ShareLib} from "../../lib/ShareLib.sol";
 import {BalancerBase} from "./BalancerBase.sol";
@@ -36,21 +36,20 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
 
     emit Deposit(asset, user, amount, shares);
 
-    (Offset[] memory arr, , ) = _calculations().offsets(asset);
+    (Offset[] memory arr, uint256 totalNegative, ) = _calculations().offsets(
+      asset
+    );
 
-    if (arr.length == 0) {
+    if (arr.length == 0 || totalNegative == 0) {
       return;
     }
 
     uint256 acc = asset.balanceOf(address(this));
 
     for (uint256 i = 0; i < arr.length; ) {
-      if (acc == 0) return;
-
       Offset memory offset = arr[i];
-      Yield storage yield = s.yield[offset.yieldSrc];
 
-      if (offset.isPositive || !yield.state) {
+      if (offset.state != OffsetState.Negative) {
         unchecked {
           i++;
         }
@@ -58,9 +57,15 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
         continue;
       }
 
+      Yield storage yield = s.yield[offset.yieldSrc];
+
       _updateAPR(offset.yieldSrc);
 
-      uint256 yieldAmount = MathLib.min(offset.offset, acc);
+      // `min()` to account for small inconsistencies with integer division
+      uint256 yieldAmount = MathLib.min(
+        (amount * offset.offset) / totalNegative,
+        acc
+      );
 
       asset.safeTransfer(address(offset.yieldSrc), yieldAmount);
       offset.yieldSrc.deposit(yieldAmount);
@@ -69,30 +74,11 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
 
       unchecked {
         acc -= yieldAmount;
+
+        if (acc == 0) return;
+
         i++;
       }
-    }
-
-    for (uint256 i = 0; i < arr.length; ) {
-      Offset memory offset = arr[i];
-      Yield storage yield = s.yield[offset.yieldSrc];
-
-      if (!yield.state) {
-        unchecked {
-          i++;
-        }
-
-        continue;
-      }
-
-      _updateAPR(offset.yieldSrc);
-
-      asset.safeTransfer(address(offset.yieldSrc), acc);
-      offset.yieldSrc.deposit(acc);
-
-      yield.lastDeposit = offset.yieldSrc.totalBalance();
-
-      break;
     }
   }
 
@@ -131,7 +117,9 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
 
     emit Withdraw(asset, user, amount, shares);
 
-    if (asset.balanceOf(address(this)) >= amount) {
+    uint256 curBalance = asset.balanceOf(address(this));
+
+    if (curBalance >= amount) {
       asset.safeTransfer(msg.sender, amount);
       return amount;
     }
@@ -140,24 +128,24 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
 
     require(arr.length > 0, "BalancerInitializer: No yields on withdraw");
 
-    uint256 acc = amount - asset.balanceOf(address(this));
+    uint256 acc;
+
+    unchecked {
+      acc = amount - curBalance;
+    }
 
     for (uint256 i = 0; i < arr.length; ) {
-      if (acc == 0) {
-        asset.safeTransfer(msg.sender, amount);
-        return amount;
-      }
-
       Offset memory offset = arr[i];
-      Yield storage yield = s.yield[offset.yieldSrc];
 
-      if (!offset.isPositive || !yield.state) {
+      if (offset.state != OffsetState.Positive) {
         unchecked {
           i++;
         }
 
         continue;
       }
+
+      Yield storage yield = s.yield[offset.yieldSrc];
 
       _updateAPR(offset.yieldSrc);
 
@@ -169,21 +157,21 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
 
       unchecked {
         acc -= yieldAmount;
+
+        if (acc == 0) {
+          asset.safeTransfer(msg.sender, amount);
+          return amount;
+        }
+
         i++;
       }
     }
 
     for (uint256 i = 0; i < arr.length; ) {
-      if (acc == 0) {
-        asset.safeTransfer(msg.sender, amount);
-        return amount;
-      }
-
       Offset memory offset = arr[i];
-      Yield storage yield = s.yield[offset.yieldSrc];
       uint256 balance = offset.yieldSrc.totalBalance();
 
-      if (!yield.state) {
+      if (offset.state == OffsetState.None) {
         unchecked {
           i++;
         }
@@ -191,9 +179,10 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
         continue;
       }
 
-      _updateAPR(offset.yieldSrc);
-
+      Yield storage yield = s.yield[offset.yieldSrc];
       uint256 yieldAmount = MathLib.min(balance, acc);
+
+      _updateAPR(offset.yieldSrc);
 
       if (yieldAmount == balance) {
         offset.yieldSrc.fullWithdraw();
@@ -205,13 +194,14 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
 
       unchecked {
         acc -= yieldAmount;
+
+        if (acc == 0) {
+          asset.safeTransfer(msg.sender, amount);
+          return amount;
+        }
+
         i++;
       }
-    }
-
-    if (acc == 0) {
-      asset.safeTransfer(msg.sender, amount);
-      return amount;
     }
 
     revert("BalancerInitializer: No way to pay requested amount");
