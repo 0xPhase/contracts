@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.17;
 
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+
 import {IDiamondCut} from "./IDiamondCut.sol";
 import {CallLib} from "../lib/CallLib.sol";
-import {IDB} from "../db/IDB.sol";
 
 /// @notice Error emitted when the initialization reverts
 /// @param _initializationContractAddress The initializer address
@@ -25,7 +26,6 @@ library DiamondLib {
   }
 
   struct DiamondStorage {
-    IDB db;
     // maps function selector to the facet address and
     // the position of the selector in the facetFunctionSelectors.selectors array
     mapping(bytes4 => FacetAddressAndPosition) selectorToFacetAndPosition;
@@ -50,12 +50,6 @@ library DiamondLib {
     address _init,
     bytes _calldata
   );
-
-  /// @notice Initializes the diamond
-  /// @param db_ The DB contract
-  function initializeDiamond(IDB db_) internal {
-    diamondStorage().db = db_;
-  }
 
   /// @notice Internal function to cut the diamond
   /// @param _diamondCut The list of cuts to do
@@ -239,7 +233,7 @@ library DiamondLib {
   /// @param _facetAddress The facet address to add
   function addFacet(DiamondStorage storage ds, address _facetAddress) internal {
     require(
-      CallLib.isContract(ds.db, _facetAddress),
+      Address.isContract(_facetAddress),
       "DiamondLib: Facet must be a contract"
     );
 

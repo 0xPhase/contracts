@@ -78,6 +78,7 @@
 
 - Link: https://omniscia.io/reports/0xphase-core-protocol-643d1d1f88c1770014f3a77b/manual-review/CreditAccountV1-CAV#CAV-01M
 - Notes: Fixed by implementing a transfer system where the user has to first initiate a transfer to another user which after the target user has to accept it with a transaction. A maximum transfer time is also implemented to automatically invalidate old transfers. A good UI/UX will be implemented for this to also ensure that users don't accidentally accept fraudulent transfers.
+- Update: Fixed alleviation findings
 - [x] Fixed
 
 ### DBV-04M: Incorrect Arithmetic Operator Methodology
@@ -224,6 +225,7 @@
 ### VSF-01M: Inexistent Sanitization of Variables
 
 - Link: https://omniscia.io/reports/0xphase-core-protocol-643d1d1f88c1770014f3a77b/manual-review/VaultSettersFacet-VSF#VSF-01M
+- Update: Fixed alleviation findings
 - [x] Fixed
 
 ## Informational
@@ -462,11 +464,13 @@
 ### VAF-01C: Ineffectual Usage of Safe Arithmetics
 
 - Link: https://omniscia.io/reports/0xphase-core-protocol-643d1d1f88c1770014f3a77b/code-style/VaultAccountingFacet-VAF#VAF-01C
+- Update: Fixed alleviation findings
 - [x] Fixed
 
 ### VBE-01C: Ineffectual Usage of Safe Arithmetics
 
 - Link: https://omniscia.io/reports/0xphase-core-protocol-643d1d1f88c1770014f3a77b/code-style/VaultBase-VBE#VBE-01C
+- Update: Fixed alleviation findings
 - [x] Fixed
 
 ### VLF-01C: Suboptimal Struct Declaration Styles

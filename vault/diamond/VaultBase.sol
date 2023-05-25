@@ -193,23 +193,25 @@ abstract contract VaultBase is AccessControlBase {
     uint256 targetDeposit = (total * (1 ether - info.yieldPercent)) / 1 ether;
 
     if (deposit > targetDeposit) {
+      uint256 amount;
+
       unchecked {
-        uint256 amount = deposit - targetDeposit;
-
-        s.asset.safeTransfer(address(s.balancer), amount);
-        s.balancer.deposit(s.asset, user, amount);
-
-        info.deposit -= amount;
+        amount = deposit - targetDeposit;
       }
-    }
 
-    if (yield > targetYield) {
+      s.asset.safeTransfer(address(s.balancer), amount);
+      s.balancer.deposit(s.asset, user, amount);
+
+      info.deposit -= amount;
+    } else if (yield > targetYield) {
+      uint256 amount;
+
       unchecked {
-        uint256 amount = yield - targetYield;
-
-        amount = s.balancer.withdraw(s.asset, user, amount);
-        info.deposit += amount;
+        amount = yield - targetYield;
       }
+
+      amount = s.balancer.withdraw(s.asset, user, amount);
+      info.deposit += amount;
     }
   }
 

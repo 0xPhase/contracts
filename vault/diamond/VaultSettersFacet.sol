@@ -40,7 +40,7 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   ) external override updateMessageUser freezeCheck(true) updateDebt {
     require(
       yieldPercent <= 1 ether,
-      "VaultSettersFacet: YieldPercent cannot be over 100%"
+      "VaultSettersFacet: yieldPercent cannot be over 100%"
     );
 
     VaultStorage storage s = _s();
@@ -81,6 +81,11 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setMaxCollateralRatio(
     uint256 newMaxCollateralRatio
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
+    require(
+      newMaxCollateralRatio <= 0.98 ether,
+      "VaultSettersFacet: maxCollateralRatio cannot be over 98%"
+    );
+
     _s().maxCollateralRatio = newMaxCollateralRatio;
 
     emit MaxCollateralRatioSet(newMaxCollateralRatio);
@@ -92,6 +97,11 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setBorrowFee(
     uint256 newBorrowFee
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
+    require(
+      newBorrowFee <= 0.02 ether,
+      "VaultSettersFacet: borrowFee cannot be over 2%"
+    );
+
     _s().borrowFee = newBorrowFee;
 
     emit BorrowFeeSet(newBorrowFee);
@@ -103,6 +113,11 @@ contract VaultSettersFacet is VaultBase, IVaultSetters {
   function setLiquidationFee(
     uint256 newLiquidationFee
   ) external onlyRole(VaultConstants.MANAGER_ROLE) {
+    require(
+      newLiquidationFee <= 0.1 ether,
+      "VaultSettersFacet: liquidationFee cannot be over 10%"
+    );
+
     _s().liquidationFee = newLiquidationFee;
 
     emit LiquidationFeeSet(newLiquidationFee);

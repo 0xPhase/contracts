@@ -87,12 +87,13 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
         info.deposit -= amount;
       }
     } else {
+      uint256 offset;
+
       unchecked {
-        amount =
-          info.deposit +
-          s.balancer.withdraw(s.asset, user, amount - info.deposit);
+        offset = amount - info.deposit;
       }
 
+      amount = info.deposit + s.balancer.withdraw(s.asset, user, offset);
       info.deposit = 0;
     }
 
@@ -197,12 +198,15 @@ contract VaultAccountingFacet is VaultBase, IVaultAccounting {
 
     require(shares > 0, "VaultAccountingFacet: Cannot repay 0 shares");
 
-    // solhint-disable-next-line reason-string
-    require(
-      _debtValue(userShares - shares) >= _stepMinDeposit() ||
-        (userShares - shares) == 0,
-      "VaultAccountingFacet: Has to repay to zero or have more debt than minimum"
-    );
+    unchecked {
+      uint256 remaining = userShares - shares;
+
+      // solhint-disable-next-line reason-string
+      require(
+        remaining == 0 || _debtValue(remaining) >= _stepMinDeposit(),
+        "VaultAccountingFacet: Has to repay to zero or have more debt than minimum"
+      );
+    }
 
     uint256 toRepay = _debtValue(shares);
 

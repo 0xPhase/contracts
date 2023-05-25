@@ -43,7 +43,18 @@ contract CreditAccountV1 is CreditAccountStorageV1 {
     uint256 time = systemClock.time();
     uint256 token = tokenOfOwnerByIndex(msg.sender, 0);
 
-    transfers[msg.sender] = TransferInfo(time, token, to);
+    transfers[msg.sender] = TransferInfo({
+      timestamp: time,
+      token: token,
+      to: to
+    });
+
+    address currentTo = transfers[msg.sender].to;
+
+    if (currentTo != address(0)) {
+      _transfersTo[currentTo].remove(msg.sender);
+    }
+
     _transfersTo[to].add(msg.sender);
 
     emit TransferStarted(msg.sender, to, token, time);
@@ -58,7 +69,12 @@ contract CreditAccountV1 is CreditAccountStorageV1 {
     emit TransferCancelled(msg.sender, info.to, info.token);
 
     _transfersTo[transfers[msg.sender].to].remove(msg.sender);
-    transfers[msg.sender] = TransferInfo(0, 0, address(0));
+
+    transfers[msg.sender] = TransferInfo({
+      timestamp: 0,
+      token: 0,
+      to: address(0)
+    });
   }
 
   /// @inheritdoc ICreditAccount
@@ -85,14 +101,15 @@ contract CreditAccountV1 is CreditAccountStorageV1 {
     uint256 token = tokenOfOwnerByIndex(from, 0);
 
     if (info.token != token) {
-      _transfersTo[msg.sender].remove(msg.sender);
-      transfers[from] = TransferInfo(0, 0, address(0));
+      _transfersTo[msg.sender].remove(from);
+      transfers[from] = TransferInfo({timestamp: 0, token: 0, to: address(0)});
+
       return;
     }
 
     _transferAllowed = true;
     _transfersTo[msg.sender].remove(from);
-    transfers[from] = TransferInfo(0, 0, address(0));
+    transfers[from] = TransferInfo({timestamp: 0, token: 0, to: address(0)});
 
     _transfer(from, msg.sender, token);
   }
@@ -130,9 +147,13 @@ contract CreditAccountV1 is CreditAccountStorageV1 {
     infos = new TransferInfo[](length);
     froms = new address[](length);
 
-    for (uint256 i = 0; i < length; i++) {
+    for (uint256 i = 0; i < length; ) {
       froms[i] = set.at(i);
       infos[i] = transfers[froms[i]];
+
+      unchecked {
+        i++;
+      }
     }
   }
 
