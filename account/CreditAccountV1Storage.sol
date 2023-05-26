@@ -15,7 +15,7 @@ import {ISystemClock} from "../clock/ISystemClock.sol";
 import {Manager} from "../core/Manager.sol";
 import {IDB} from "../db/IDB.sol";
 
-abstract contract CreditAccountStorageV1 is
+abstract contract CreditAccountV1Storage is
   Initializable,
   ERC721Upgradeable,
   ERC721EnumerableUpgradeable,
@@ -48,7 +48,7 @@ abstract contract CreditAccountStorageV1 is
   ) external initialize("v1") initializer {
     require(
       address(db_) != address(0),
-      "CreditAccountStorageV1: DB cannot be 0 address"
+      "CreditAccountV1Storage: DB cannot be 0 address"
     );
 
     __ERC721_init("Phase Credit Account", "CREDIT");

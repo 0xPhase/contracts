@@ -3,8 +3,8 @@ pragma solidity =0.8.17;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {IDB, Set, OpcodeType, Opcode, ValueOpcode, ContainsOpcode, InverseOpcode, ArithmeticOperatorOpcode, ComparatorOpcode, GateOpcode} from "../IDB.sol";
-import {DBV1Storage} from "../DBV1Storage.sol";
+import {IDB, Set, OpcodeType, Opcode, ValueOpcode, ContainsOpcode, InverseOpcode, ArithmeticOperatorOpcode, ComparatorOpcode, GateOpcode} from "./IDB.sol";
+import {DBV1Storage} from "./DBV1Storage.sol";
 
 contract DBV1 is DBV1Storage {
   using EnumerableSet for EnumerableSet.Bytes32Set;

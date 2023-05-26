@@ -10,7 +10,7 @@ import {AccessControl} from "../../../core/AccessControl.sol";
 import {ISystemClock} from "../../../clock/ISystemClock.sol";
 import {IDB} from "../../../db/IDB.sol";
 
-abstract contract ChainlinkOracleStorageV1 is
+abstract contract ChainlinkOracleV1Storage is
   ProxyInitializable,
   AccessControl,
   Multicall,
@@ -23,7 +23,7 @@ abstract contract ChainlinkOracleStorageV1 is
 
   EnumerableSet.AddressSet internal _feeds;
 
-  /// @notice The constructor for the ChainlinkOracleStorageV1 contract
+  /// @notice The constructor for the ChainlinkOracleV1Storage contract
   constructor() {
     _disableInitialization();
   }

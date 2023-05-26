@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.17;
 
-import {PegTokenV1Storage} from "../PegTokenV1Storage.sol";
-import {IPegToken} from "../IPegToken.sol";
+import {PegTokenV1Storage} from "./PegTokenV1Storage.sol";
+import {IPegToken} from "./IPegToken.sol";
 
 contract PegTokenV1 is PegTokenV1Storage {
   /// @inheritdoc	IPegToken

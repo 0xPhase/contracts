@@ -57,6 +57,10 @@ interface IBondGetters {
   /// @return List of bonds for the user
   function bonds(uint256 user) external view returns (Bond[] memory);
 
+  /// @notice Gets the manager contract
+  /// @return The manager contract
+  function manager() external view returns (Manager);
+
   /// @notice Gets the credit account contract
   /// @return The credit account contract
   function creditAccount() external view returns (ICreditAccount);

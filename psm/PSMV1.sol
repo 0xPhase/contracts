@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.17;
 
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IPSM, PSMV1Storage} from "../IPSM.sol";
-import {MathLib} from "../../lib/MathLib.sol";
+import {PSMV1Storage} from "./PSMV1Storage.sol";
+import {MathLib} from "../lib/MathLib.sol";
+import {IPSM} from "./IPSM.sol";
 
 contract PSMV1 is PSMV1Storage {
+  using EnumerableSet for EnumerableSet.AddressSet;
   using SafeERC20 for IERC20;
 
   /// @notice Mints the yield for the contract
@@ -15,7 +18,10 @@ contract PSMV1 is PSMV1Storage {
     uint256 total = totalBalance();
 
     if (total > _lastUnderlyingBalance) {
-      cash.mintManager(bondAddress, total - _lastUnderlyingBalance);
+      unchecked {
+        cash.mintManager(bondAddress, total - _lastUnderlyingBalance);
+      }
+
       _lastUnderlyingBalance = total;
     }
 
@@ -33,7 +39,11 @@ contract PSMV1 is PSMV1Storage {
 
     require(buyFee == 0 || fee > 0, "PSMV1: Fee cannot round down to 0");
 
-    uint256 userAmount = fullAmount - fee;
+    uint256 userAmount;
+
+    unchecked {
+      userAmount = fullAmount - fee;
+    }
 
     cash.mintManager(msg.sender, userAmount);
 
@@ -46,6 +56,7 @@ contract PSMV1 is PSMV1Storage {
 
     totalTraded += fullAmount;
     totalFees += fee;
+    _lastUnderlyingBalance = totalBalance();
 
     emit CashBought(msg.sender, fee, userAmount, fullAmount);
   }
@@ -68,11 +79,18 @@ contract PSMV1 is PSMV1Storage {
       cash.mintManager(bondAddress, fullFee);
     }
 
-    vault.removeCollateral(amount - fee, "");
-    underlying.safeTransfer(msg.sender, amount - fee);
+    uint256 userAmount;
+
+    unchecked {
+      userAmount = amount - fee;
+    }
+
+    vault.removeCollateral(userAmount, "");
+    underlying.safeTransfer(msg.sender, userAmount);
 
     totalTraded += fullAmount;
     totalFees += fullFee;
+    _lastUnderlyingBalance = totalBalance();
 
     emit CashSold(msg.sender, fee, fullAmount, fullUserAmount);
   }
@@ -81,7 +99,15 @@ contract PSMV1 is PSMV1Storage {
   /// @param fee The buy fee
   /// @custom:protected onlyRole(MANAGER_ROLE)
   function setBuyFee(uint256 fee) external onlyRole(MANAGER_ROLE) {
+    require(fee <= 0.01 ether, "PSMV1: fee cannot be over 1%");
+
+    require(
+      fee == 0 || fee >= 0.0005 ether,
+      "PSMV1: fee has to be 0 or over 0.05%"
+    );
+
     buyFee = fee;
+
     emit BuyFeeSet(fee);
   }
 
@@ -89,7 +115,15 @@ contract PSMV1 is PSMV1Storage {
   /// @param fee The sell fee
   /// @custom:protected onlyRole(MANAGER_ROLE)
   function setSellFee(uint256 fee) external onlyRole(MANAGER_ROLE) {
+    require(fee <= 0.01 ether, "PSMV1: fee cannot be over 1%");
+
+    require(
+      fee == 0 || fee >= 0.0005 ether,
+      "PSMV1: fee has to be 0 or over 0.05%"
+    );
+
     sellFee = fee;
+
     emit SellFeeSet(fee);
   }
 

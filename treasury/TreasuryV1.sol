@@ -6,10 +6,10 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ITreasury, TokenInfo, Cause} from "./ITreasury.sol";
-import {TreasuryStorageV1} from "./TreasuryStorageV1.sol";
+import {TreasuryV1Storage} from "./TreasuryV1Storage.sol";
 import {CallLib} from "../lib/CallLib.sol";
 
-contract TreasuryV1 is TreasuryStorageV1 {
+contract TreasuryV1 is TreasuryV1Storage {
   using EnumerableSet for EnumerableSet.AddressSet;
   using SafeERC20 for IERC20;
 
@@ -90,8 +90,12 @@ contract TreasuryV1 is TreasuryStorageV1 {
     uint256 length = _globalCause.tokens.length();
     arr = new address[](length);
 
-    for (uint256 i = 0; i < length; i++) {
+    for (uint256 i = 0; i < length; ) {
       arr[i] = _globalCause.tokens.at(i);
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -172,8 +176,12 @@ contract TreasuryV1 is TreasuryStorageV1 {
     uint256 length = strCause.tokens.length();
     arr = new address[](length);
 
-    for (uint256 i = 0; i < length; i++) {
+    for (uint256 i = 0; i < length; ) {
       arr[i] = strCause.tokens.at(i);
+
+      unchecked {
+        i++;
+      }
     }
   }
 

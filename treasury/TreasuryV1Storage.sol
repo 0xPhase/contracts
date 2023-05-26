@@ -8,7 +8,7 @@ import {AccessControl} from "../core/AccessControl.sol";
 import {ITreasury, Cause} from "./ITreasury.sol";
 import {IDB} from "../db/IDB.sol";
 
-abstract contract TreasuryStorageV1 is
+abstract contract TreasuryV1Storage is
   AccessControl,
   ProxyInitializable,
   ITreasury
@@ -18,7 +18,7 @@ abstract contract TreasuryStorageV1 is
   mapping(bytes32 => Cause) internal _cause;
   Cause internal _globalCause;
 
-  // The constructor for the TreasuryStorageV1 contract
+  // The constructor for the TreasuryV1Storage contract
   constructor() {
     _disableInitialization();
   }

@@ -6,10 +6,10 @@ import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC72
 import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {CreditAccountStorageV1} from "./CreditAccountStorageV1.sol";
+import {CreditAccountV1Storage} from "./CreditAccountV1Storage.sol";
 import {ICreditAccount, TransferInfo} from "./ICreditAccount.sol";
 
-contract CreditAccountV1 is CreditAccountStorageV1 {
+contract CreditAccountV1 is CreditAccountV1Storage {
   using CountersUpgradeable for CountersUpgradeable.Counter;
   using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -157,7 +157,7 @@ contract CreditAccountV1 is CreditAccountStorageV1 {
     }
   }
 
-  /// @inheritdoc CreditAccountStorageV1
+  /// @inheritdoc CreditAccountV1Storage
   function _beforeTokenTransfer(
     address from,
     address to,

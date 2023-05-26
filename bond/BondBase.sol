@@ -8,6 +8,7 @@ import {AccessControlBase} from "../diamond/AccessControl/AccessControlBase.sol"
 import {ClockBase} from "../diamond/Clock/ClockBase.sol";
 import {ERC20Base} from "../diamond/ERC20/ERC20Base.sol";
 import {BondStorage, BondState} from "./IBond.sol";
+import {MathLib} from "../lib/MathLib.sol";
 
 abstract contract BondBase is AccessControlBase, ERC20Base, ClockBase {
   uint256 internal constant _ETH_PRECISION = 10 ** 18;
@@ -17,9 +18,9 @@ abstract contract BondBase is AccessControlBase, ERC20Base, ClockBase {
   uint256 internal constant _MAX_VALUE = 0.95 ether;
   uint256 internal constant _REMAINING_VALUE = _ETH_PRECISION - _BASE_VALUE;
 
+  bytes32 internal constant _BOND_STORAGE_SLOT =
+    bytes32(uint256(keccak256("bond.diamond.storage")) - 1);
   bytes32 internal constant _MANAGER_ROLE = keccak256("MANAGER_ROLE");
-
-  BondStorage internal _s;
 
   /// @notice Event emitted when a bond is created
   /// @param user The user id
@@ -64,7 +65,7 @@ abstract contract BondBase is AccessControlBase, ERC20Base, ClockBase {
   /// @notice Gets the total balance
   /// @return The total balance
   function _totalBalance() internal view returns (uint256) {
-    return IERC20(address(_s.cash)).balanceOf(address(this));
+    return IERC20(address(_s().cash)).balanceOf(address(this));
   }
 
   /// @notice A curve function
@@ -72,18 +73,30 @@ abstract contract BondBase is AccessControlBase, ERC20Base, ClockBase {
   /// @return y The y position on the curve
   function _curve(uint256 x) internal pure returns (uint256 y) {
     if (x == 0) return _BASE_VALUE;
-    if (x > _ETH_PRECISION) revert("BondBase: Argument x out of bounds");
+    if (x > _ETH_PRECISION) revert("BondBase: x out of bounds");
 
-    uint256 curve = _ETH_PRECISION -
-      ((_ETH_PRECISION - x) ** _POWER) /
-      _POWER_PRECISION;
+    unchecked {
+      uint256 curve = _ETH_PRECISION -
+        ((_ETH_PRECISION - x) ** _POWER) /
+        _POWER_PRECISION;
 
-    uint256 result = (curve * _REMAINING_VALUE) / _ETH_PRECISION;
+      uint256 result = (curve * _REMAINING_VALUE) / _ETH_PRECISION;
+      uint256 maxed = ((result * _MAX_VALUE) / _ETH_PRECISION);
 
-    uint256 maxed = ((result * _MAX_VALUE) / _ETH_PRECISION);
-
-    return _BASE_VALUE + maxed;
+      return MathLib.clamp(_BASE_VALUE + maxed, 0, 1 ether);
+    }
 
     // y = 0.5+((1-(1-x)^(2))/(2))*0.95
+  }
+
+  /// @notice Returns the pointer to the bond storage
+  /// @return s Bond storage pointer
+  function _s() internal pure returns (BondStorage storage s) {
+    bytes32 slot = _BOND_STORAGE_SLOT;
+
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      s.slot := slot
+    }
   }
 }

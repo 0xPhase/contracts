@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.17;
 
-import {ChainlinkOracleStorageV1} from "./ChainlinkOracleStorageV1.sol";
+import {ChainlinkOracleV1Storage} from "./ChainlinkOracleV1Storage.sol";
 import {IChainlinkOracle, PriceFeed} from "./IChainlinkOracle.sol";
 import {IAggregator} from "../../../interfaces/IAggregator.sol";
 import {MathLib} from "../../../lib/MathLib.sol";
 import {IOracle} from "../../IOracle.sol";
 
-contract ChainlinkOracleV1 is ChainlinkOracleStorageV1 {
+contract ChainlinkOracleV1 is ChainlinkOracleV1Storage {
   /// @inheritdoc	IChainlinkOracle
   /// @custom:protected onlyRole(MANAGER_ROLE)
   function setFeed(

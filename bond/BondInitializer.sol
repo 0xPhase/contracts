@@ -6,6 +6,7 @@ import {ProxyInitializable} from "../proxy/utils/ProxyInitializable.sol";
 import {ICreditAccount} from "../account/ICreditAccount.sol";
 import {IPegToken} from "../peg/IPegToken.sol";
 import {Manager} from "../core/Manager.sol";
+import {BondStorage} from "./IBond.sol";
 import {BondBase} from "./BondBase.sol";
 import {IDB} from "../db/IDB.sol";
 
@@ -24,17 +25,23 @@ contract BondInitializer is BondBase, ProxyInitializable {
     uint256 bondDuration_,
     uint256 protocolExitPortion_
   ) external initialize("v1") {
+    require(
+      address(db_) != address(0),
+      "BondInitializer: db_ cannot be 0 address"
+    );
+
     _initializeElement(db_);
     _initializeClock();
     _initializeERC20("Phase Cash Bond", "zCASH");
 
+    BondStorage storage s = _s();
     address managerAddress = db_.getAddress("MANAGER");
 
-    _s.manager = Manager(managerAddress);
-    _s.creditAccount = ICreditAccount(db_.getAddress("CREDIT_ACCOUNT"));
-    _s.cash = IPegToken(db_.getAddress("CASH"));
-    _s.bondDuration = bondDuration_;
-    _s.protocolExitPortion = protocolExitPortion_;
+    s.manager = Manager(managerAddress);
+    s.creditAccount = ICreditAccount(db_.getAddress("CREDIT_ACCOUNT"));
+    s.cash = IPegToken(db_.getAddress("CASH"));
+    s.bondDuration = bondDuration_;
+    s.protocolExitPortion = protocolExitPortion_;
 
     _initializeAccessControlWithKey(keccak256("MANAGER"));
 
