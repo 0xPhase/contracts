@@ -43,17 +43,17 @@ contract CreditAccountV1 is CreditAccountV1Storage {
     uint256 time = systemClock.time();
     uint256 token = tokenOfOwnerByIndex(msg.sender, 0);
 
-    transfers[msg.sender] = TransferInfo({
-      timestamp: time,
-      token: token,
-      to: to
-    });
-
     address currentTo = transfers[msg.sender].to;
 
     if (currentTo != address(0)) {
       _transfersTo[currentTo].remove(msg.sender);
     }
+
+    transfers[msg.sender] = TransferInfo({
+      timestamp: time,
+      token: token,
+      to: to
+    });
 
     _transfersTo[to].add(msg.sender);
 

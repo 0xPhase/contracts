@@ -79,6 +79,7 @@
 - Link: https://omniscia.io/reports/0xphase-core-protocol-643d1d1f88c1770014f3a77b/manual-review/CreditAccountV1-CAV#CAV-01M
 - Notes: Fixed by implementing a transfer system where the user has to first initiate a transfer to another user which after the target user has to accept it with a transaction. A maximum transfer time is also implemented to automatically invalidate old transfers. A good UI/UX will be implemented for this to also ensure that users don't accidentally accept fraudulent transfers.
 - Update: Fixed alleviation findings
+- Update 2: Fixed ordering
 - [x] Fixed
 
 ### DBV-04M: Incorrect Arithmetic Operator Methodology
