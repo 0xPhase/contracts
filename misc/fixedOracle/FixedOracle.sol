@@ -10,6 +10,10 @@ import {IFixedOracle} from "./IFixedOracle.sol";
 contract FixedOracle is Ownable, Multicall, IFixedOracle {
   mapping(address => uint256) internal _price;
 
+  constructor(address owner_) {
+    _transferOwnership(owner_);
+  }
+
   /// @inheritdoc	IFixedOracle
   /// @custom:protected onlyOwner
   function setPrice(address asset, uint256 price) external override onlyOwner {
