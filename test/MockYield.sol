@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {YieldBase} from "../yield/yields/base/YieldBase.sol";
 import {ISystemClock} from "../clock/ISystemClock.sol";
 import {IVault} from "../vault/IVault.sol";
-import {TestUSDC} from "./TestUSDC.sol";
+import {TestToken} from "./TestToken.sol";
 import {IDB} from "../db/IDB.sol";
 
 contract MockYield is YieldBase {
@@ -46,7 +46,7 @@ contract MockYield is YieldBase {
 
     lastTick = systemClock.time();
 
-    TestUSDC(address(asset)).mintAny(address(this), amount);
+    TestToken(address(asset)).mintAny(address(this), amount);
   }
 
   function _yieldCreated(uint256 offset) internal view returns (uint256) {

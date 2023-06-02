@@ -5,7 +5,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {TestUSDC} from "./TestUSDC.sol";
+import {TestToken} from "./TestToken.sol";
 
 struct ReserveConfigurationMap {
   uint256 data;
@@ -62,7 +62,7 @@ contract AToken is ERC20, Ownable {
 }
 
 contract TestAave {
-  using SafeERC20 for TestUSDC;
+  using SafeERC20 for TestToken;
 
   struct UserInfo {
     uint256 amount;
@@ -72,7 +72,7 @@ contract TestAave {
   uint256 public constant INTEREST = 2 ether;
 
   mapping(address => UserInfo) public userInfo;
-  TestUSDC public testUSDC;
+  TestToken public testToken;
   AToken public atoken;
 
   modifier mintInterest(address user) {
@@ -81,7 +81,7 @@ contract TestAave {
     if (info.amount == 0) {
       info.last = block.timestamp;
     } else {
-      testUSDC.mintAny(address(this), increase(user));
+      testToken.mintAny(address(this), increase(user));
 
       info.last = block.timestamp;
     }
@@ -89,9 +89,9 @@ contract TestAave {
     _;
   }
 
-  constructor(TestUSDC testUSDC_) {
-    testUSDC = testUSDC_;
-    atoken = new AToken(this, testUSDC_.decimals());
+  constructor(TestToken testToken_) {
+    testToken = testToken_;
+    atoken = new AToken(this, testToken_.decimals());
   }
 
   function deposit(
@@ -100,7 +100,7 @@ contract TestAave {
     address,
     uint16
   ) external mintInterest(msg.sender) {
-    testUSDC.safeTransferFrom(msg.sender, address(this), amount);
+    testToken.safeTransferFrom(msg.sender, address(this), amount);
 
     userInfo[msg.sender].amount += amount;
   }
@@ -117,7 +117,7 @@ contract TestAave {
 
     userInfo[msg.sender].amount -= amount;
 
-    testUSDC.safeTransfer(msg.sender, amount);
+    testToken.safeTransfer(msg.sender, amount);
 
     return amount;
   }

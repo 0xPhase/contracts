@@ -4,18 +4,16 @@ pragma solidity =0.8.17;
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract TestUSDC is ERC20, ERC20Burnable {
-  mapping(address => uint256) public counter;
+contract TestToken is ERC20, ERC20Burnable {
+  uint8 internal _decimals;
 
   // solhint-disable-next-line no-empty-blocks
-  constructor() ERC20("Test Circle USD", "tUSDC") {}
-
-  function mint(address to) external {
-    require(counter[to] <= 2, "TestUSDC: Already minted max amount");
-
-    _mint(to, 200_000 * (uint256(10) ** uint256(decimals())));
-
-    counter[to]++;
+  constructor(
+    string memory name_,
+    string memory symbol_,
+    uint8 decimals_
+  ) ERC20(string.concat("Test ", name_), string.concat("t", symbol_)) {
+    _decimals = decimals_;
   }
 
   function mintAny(address to, uint256 amount) external {
@@ -23,6 +21,6 @@ contract TestUSDC is ERC20, ERC20Burnable {
   }
 
   function decimals() public view virtual override returns (uint8) {
-    return 6;
+    return _decimals;
   }
 }

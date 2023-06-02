@@ -15,7 +15,7 @@ contract ChainlinkOracleV1 is ChainlinkOracleV1Storage {
     address feed,
     uint256 heartbeat
   ) external override onlyRole(MANAGER_ROLE) {
-    priceFeeds[asset] = PriceFeed(feed, heartbeat);
+    priceFeeds[asset] = PriceFeed({feed: feed, heartbeat: heartbeat});
 
     emit FeedSet(asset, feed);
   }

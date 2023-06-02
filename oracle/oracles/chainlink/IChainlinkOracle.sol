@@ -22,8 +22,9 @@ interface IChainlinkOracle is IOracle {
   function setFeed(address asset, address feed, uint256 heartbeat) external;
 
   /// @notice Returns the feed for the asset
-  /// @param feed The feed address
-  /// @param heartbeat The maximum heartbeat duration
+  /// @param asset The asset address
+  /// @return feed The feed address
+  /// @return heartbeat The maximum heartbeat duration
   function priceFeeds(
     address asset
   ) external view returns (address feed, uint256 heartbeat);
