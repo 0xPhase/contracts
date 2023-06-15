@@ -20,7 +20,6 @@ contract MockYield is YieldBase {
     _initializeBaseYield(asset_, db_.getAddress("BALANCER"));
 
     yieldRate = yieldRate_;
-    lastTick = systemClock.time();
   }
 
   function totalBalance() public view override returns (uint256) {
@@ -40,6 +39,11 @@ contract MockYield is YieldBase {
   }
 
   function _createYield(uint256 offset) internal {
+    if (lastTick == 0) {
+      lastTick = systemClock.time();
+      return;
+    }
+
     uint256 amount = _yieldCreated(offset);
 
     if (amount == 0) return;
@@ -50,12 +54,17 @@ contract MockYield is YieldBase {
   }
 
   function _yieldCreated(uint256 offset) internal view returns (uint256) {
-    uint256 difference = systemClock.getTime() - lastTick;
+    uint256 difference = systemClock.getTime() - _lastTick();
 
     if (difference == 0) return 0;
 
     return
       ((asset.balanceOf(address(this)) - offset) * difference * yieldRate) /
       (365.25 days * 1 ether);
+  }
+
+  function _lastTick() internal view returns (uint256) {
+    if (lastTick == 0) return systemClock.getTime();
+    return lastTick;
   }
 }

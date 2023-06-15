@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.17;
 
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -10,8 +11,10 @@ import {BalancerConstants} from "./BalancerConstants.sol";
 import {ShareLib} from "../../lib/ShareLib.sol";
 import {BalancerBase} from "./BalancerBase.sol";
 import {MathLib} from "../../lib/MathLib.sol";
+import {IYield} from "../../yield/IYield.sol";
 
 contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
+  using EnumerableSet for EnumerableSet.AddressSet;
   using SafeERC20 for IERC20;
 
   /// @inheritdoc	IBalancerAccounting
@@ -40,7 +43,21 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
       asset
     );
 
-    if (arr.length == 0 || totalNegative == 0) {
+    if (arr.length == 0) {
+      return;
+    }
+
+    if (totalNegative == 0) {
+      IYield yieldSrc = IYield(ast.yields.at(0));
+      uint256 toDeposit = asset.balanceOf(address(this));
+
+      _updateAPR(yieldSrc);
+
+      asset.safeTransfer(address(yieldSrc), toDeposit);
+      yieldSrc.deposit(toDeposit);
+
+      s.yield[yieldSrc].lastDeposit = yieldSrc.totalBalance();
+
       return;
     }
 
@@ -98,7 +115,7 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
     uint256 user,
     uint256 amount
   ) public override onlyRole(BalancerConstants.VAULT_ROLE) returns (uint256) {
-    require(amount > 0, "BalancerInitializer: Cannot withdraw 0 balance");
+    require(amount > 0, "BalancerAccountingFacet: Cannot withdraw 0 balance");
 
     BalancerStorage storage s = _s();
     Asset storage ast = s.asset[asset];
@@ -110,7 +127,7 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
       ast.shares[user]
     );
 
-    require(shares > 0, "BalancerInitializer: Cannot withdraw 0 shares");
+    require(shares > 0, "BalancerAccountingFacet: Cannot withdraw 0 shares");
 
     ast.shares[user] -= shares;
     ast.totalShares -= shares;
@@ -204,6 +221,6 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
       }
     }
 
-    revert("BalancerInitializer: No way to pay requested amount");
+    revert("BalancerAccountingFacet: No way to pay requested amount");
   }
 }

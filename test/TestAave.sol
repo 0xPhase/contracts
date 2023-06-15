@@ -69,7 +69,7 @@ contract TestAave {
     uint256 last;
   }
 
-  uint256 public constant INTEREST = 2 ether;
+  uint256 public constant INTEREST = 0.2 ether;
 
   mapping(address => UserInfo) public userInfo;
   TestToken public testToken;

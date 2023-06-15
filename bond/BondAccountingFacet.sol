@@ -20,14 +20,14 @@ contract BondAccountingFacet is BondBase, IBondAccounting {
   function bond(uint256 user, uint256 amount) public override {
     BondStorage storage s = _s();
 
-    s.cash.transferManager(msg.sender, address(this), amount);
-
     uint256 time = _time();
     uint256 shares = ShareLib.calculateShares(
       amount,
       _totalSupply(),
       _totalBalance()
     );
+
+    s.cash.transferManager(msg.sender, address(this), amount);
 
     _mint(address(this), shares);
 
