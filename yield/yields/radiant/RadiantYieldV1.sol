@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.17;
 
-import {AaveYieldV1Storage} from "./IAaveYield.sol";
+import {RadiantYieldV1Storage} from "./IRadiantYield.sol";
 import {YieldBase} from "../base/YieldBase.sol";
 import {IYield} from "../../IYield.sol";
 
-contract AaveYieldV1 is AaveYieldV1Storage {
+contract RadiantYieldV1 is RadiantYieldV1Storage {
   /// @inheritdoc	IYield
   function totalBalance() public view override returns (uint256) {
     return aToken.balanceOf(address(this)) + asset.balanceOf(address(this));
@@ -13,15 +13,27 @@ contract AaveYieldV1 is AaveYieldV1Storage {
 
   /// @inheritdoc	YieldBase
   function _onDeposit(uint256) internal override {
-    uint256 amount = asset.balanceOf(address(this));
-
-    asset.approve(address(aavePool), amount);
-    aavePool.deposit(address(asset), amount, address(this), 0);
+    _deposit(0);
   }
 
   /// @inheritdoc	YieldBase
   function _onWithdraw(uint256 amount) internal override {
-    aavePool.withdraw(address(asset), amount, address(this));
+    uint256 balance = asset.balanceOf(address(this));
+
+    if (balance > amount) {
+      unchecked {
+        _onDeposit(balance - amount);
+      }
+    } else if (amount > balance) {
+      unchecked {
+        radiantPool.withdraw(address(asset), amount - balance, address(this));
+      }
+    }
+  }
+
+  function _deposit(uint256 offset) internal {
+    uint256 amount = asset.balanceOf(address(this)) - offset;
+    radiantPool.deposit(address(asset), amount, address(this), 0);
   }
 
   /// @inheritdoc	YieldBase

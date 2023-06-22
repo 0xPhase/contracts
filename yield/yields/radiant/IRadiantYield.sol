@@ -8,10 +8,14 @@ import {IVault} from "../../../vault/IVault.sol";
 import {YieldBase} from "../base/YieldBase.sol";
 import {IDB} from "../../../db/IDB.sol";
 
-import {IAavePool} from "../../../interfaces/aave/IAavePool.sol";
+import {IRadiantLendingPool} from "../../../interfaces/radiant/IRadiantLendingPool.sol";
 
-abstract contract AaveYieldV1Storage is YieldBase, ProxyInitializable, Element {
-  IAavePool public aavePool;
+abstract contract RadiantYieldV1Storage is
+  YieldBase,
+  ProxyInitializable,
+  Element
+{
+  IRadiantLendingPool public radiantPool;
   IERC20 public aToken;
 
   /// @notice Disables initialization on the target contract
@@ -19,19 +23,28 @@ abstract contract AaveYieldV1Storage is YieldBase, ProxyInitializable, Element {
     _disableInitialization();
   }
 
-  /// @notice Initializes the aave yield contract on version 1
+  /// @notice Initializes the radiant yield contract on version 1
   /// @param db_ The DB contract address
   /// @param asset_ The yield asset
-  /// @param aavePool_ The AavePool contract address
-  function initializeAaveYieldV1(
+  /// @param radiantPool_ The Radiant pool contract address
+  function initializeRadiantYieldV1(
     IDB db_,
     IERC20 asset_,
-    IAavePool aavePool_
+    IRadiantLendingPool radiantPool_
   ) external initialize("v1") {
     _initializeElement(db_);
     _initializeBaseYield(asset_, db_.getAddress("BALANCER"));
 
-    aavePool = aavePool_;
-    aToken = IERC20(aavePool_.getReserveData(address(asset_)).aTokenAddress);
+    address aTokenAddress = radiantPool_
+      .getReserveData(address(asset_))
+      .aTokenAddress;
+
+    require(
+      aTokenAddress != address(0),
+      "RadiantYieldV1Storage: AToken is zero address"
+    );
+
+    radiantPool = radiantPool_;
+    aToken = IERC20(aTokenAddress);
   }
 }
