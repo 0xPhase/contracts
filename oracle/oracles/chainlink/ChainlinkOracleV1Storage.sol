@@ -21,8 +21,6 @@ abstract contract ChainlinkOracleV1Storage is
   mapping(address => PriceFeed) public priceFeeds;
   ISystemClock public systemClock;
 
-  EnumerableSet.AddressSet internal _feeds;
-
   /// @notice The constructor for the ChainlinkOracleV1Storage contract
   constructor() {
     _disableInitialization();
@@ -33,7 +31,7 @@ abstract contract ChainlinkOracleV1Storage is
   function initializeChainlinkOracleV1(IDB db_) external initialize("v1") {
     _initializeElement(db_);
 
-    systemClock = ISystemClock(address(db_.getAddress("")));
+    systemClock = ISystemClock(address(db_.getAddress("SYSTEM_CLOCK")));
 
     _grantRoleKey(DEFAULT_ADMIN_ROLE, keccak256("MANAGER"));
     _grantRoleKey(MANAGER_ROLE, keccak256("MANAGER"));

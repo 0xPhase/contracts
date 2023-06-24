@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.17;
 
-import {ProxyInitializable} from "../../../proxy/utils/ProxyInitializable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import {ProxyInitializable} from "../../../proxy/utils/ProxyInitializable.sol";
 import {Element} from "../../../proxy/utils/Element.sol";
 import {IVault} from "../../../vault/IVault.sol";
 import {YieldBase} from "../base/YieldBase.sol";

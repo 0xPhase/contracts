@@ -59,7 +59,5 @@ abstract contract GMXYieldV1Storage is YieldBase, ProxyInitializable, Element {
     gmxRouter = gmxRouter_;
     rewardTracker = IGMXTracker(gmxRouter_.feeGmxTracker());
     balanceTracker = IGMXTracker(gmxRouter_.stakedGmxTracker());
-
-    gmx_.safeApprove(address(balanceTracker), type(uint256).max);
   }
 }

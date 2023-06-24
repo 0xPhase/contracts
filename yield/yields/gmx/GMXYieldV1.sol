@@ -46,24 +46,28 @@ contract GMXYieldV1 is GMXYieldV1Storage {
     uint256 wethBalance = weth.balanceOf(address(this)) +
       rewardTracker.claimable(address(this));
 
-    bytes memory returnData = CallLib.viewFunc(
-      address(quoter),
-      abi.encodeWithSelector(
-        IQuoterV2.quoteExactInputSingle.selector,
-        IQuoterV2.QuoteExactInputSingleParams({
-          tokenIn: address(weth),
-          tokenOut: address(asset),
-          fee: fee,
-          amountIn: wethBalance,
-          sqrtPriceLimitX96: 0
-        })
-      )
-    );
+    uint256 amountOut = 0;
 
-    (uint256 amountOut, , , ) = abi.decode(
-      returnData,
-      (uint256, uint160, uint32, uint256)
-    );
+    if (wethBalance > 0) {
+      bytes memory returnData = CallLib.viewFunc(
+        address(quoter),
+        abi.encodeWithSelector(
+          IQuoterV2.quoteExactInputSingle.selector,
+          IQuoterV2.QuoteExactInputSingleParams({
+            tokenIn: address(weth),
+            tokenOut: address(asset),
+            fee: fee,
+            amountIn: wethBalance,
+            sqrtPriceLimitX96: 0
+          })
+        )
+      );
+
+      (amountOut, , , ) = abi.decode(
+        returnData,
+        (uint256, uint160, uint32, uint256)
+      );
+    }
 
     return
       balanceTracker.depositBalances(address(this), address(asset)) +
@@ -104,6 +108,7 @@ contract GMXYieldV1 is GMXYieldV1Storage {
     uint256 balance = asset.balanceOf(address(this)) - offset;
 
     if (balance > 0) {
+      asset.safeApprove(address(gmxRouter), balance);
       gmxRouter.stakeGmx(balance);
     }
   }
