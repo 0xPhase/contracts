@@ -70,7 +70,7 @@ abstract contract BalancerBase is AccessControlBase, ClockBase {
     uint256 total = yieldSrc.totalBalance();
     IERC20 asset = yieldSrc.asset();
 
-    if (total == 0) {
+    if (yield.lastDeposit == 0) {
       yield.apr = 0;
       yield.start = time;
       yield.lastUpdate = time;

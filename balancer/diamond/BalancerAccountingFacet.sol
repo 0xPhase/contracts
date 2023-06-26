@@ -48,15 +48,29 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
     }
 
     if (totalNegative == 0) {
-      IYield yieldSrc = IYield(ast.yields.at(0));
-      uint256 toDeposit = asset.balanceOf(address(this));
+      for (uint256 i = 0; i < arr.length; ) {
+        Offset memory offset = arr[i];
 
-      _updateAPR(yieldSrc);
+        if (offset.state == OffsetState.None) {
+          unchecked {
+            i++;
+          }
 
-      asset.safeTransfer(address(yieldSrc), toDeposit);
-      yieldSrc.deposit(toDeposit);
+          continue;
+        }
 
-      s.yield[yieldSrc].lastDeposit = yieldSrc.totalBalance();
+        IYield yieldSrc = IYield(ast.yields.at(i));
+        uint256 toDeposit = asset.balanceOf(address(this));
+
+        _updateAPR(yieldSrc);
+
+        asset.safeTransfer(address(yieldSrc), toDeposit);
+        yieldSrc.deposit(toDeposit);
+
+        s.yield[yieldSrc].lastDeposit = yieldSrc.totalBalance();
+
+        return;
+      }
 
       return;
     }

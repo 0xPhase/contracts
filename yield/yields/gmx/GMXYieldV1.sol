@@ -17,62 +17,15 @@ contract GMXYieldV1 is GMXYieldV1Storage {
   using SafeERC20 for IERC20;
 
   modifier harvest() {
-    gmxRouter.compound();
-    rewardTracker.claim(address(this));
-
-    uint256 wethBalance = weth.balanceOf(address(this));
-
-    if (wethBalance > 0) {
-      weth.safeTransfer(address(router), wethBalance);
-
-      router.exactInputSingle(
-        IV3SwapRouter.ExactInputSingleParams({
-          tokenIn: address(weth),
-          tokenOut: address(asset),
-          fee: fee,
-          recipient: address(this),
-          amountIn: V3Constants.CONTRACT_BALANCE,
-          amountOutMinimum: 0,
-          sqrtPriceLimitX96: 0
-        })
-      );
-    }
-
+    _harvest();
     _;
   }
 
   /// @inheritdoc	IYield
   function totalBalance() public view override returns (uint256) {
-    uint256 wethBalance = weth.balanceOf(address(this)) +
-      rewardTracker.claimable(address(this));
-
-    uint256 amountOut = 0;
-
-    if (wethBalance > 0) {
-      bytes memory returnData = CallLib.viewFunc(
-        address(quoter),
-        abi.encodeWithSelector(
-          IQuoterV2.quoteExactInputSingle.selector,
-          IQuoterV2.QuoteExactInputSingleParams({
-            tokenIn: address(weth),
-            tokenOut: address(asset),
-            fee: fee,
-            amountIn: wethBalance,
-            sqrtPriceLimitX96: 0
-          })
-        )
-      );
-
-      (amountOut, , , ) = abi.decode(
-        returnData,
-        (uint256, uint160, uint32, uint256)
-      );
-    }
-
     return
       balanceTracker.depositBalances(address(this), address(asset)) +
       balanceTracker.claimable(address(this)) +
-      amountOut +
       asset.balanceOf(address(this));
   }
 
@@ -108,8 +61,31 @@ contract GMXYieldV1 is GMXYieldV1Storage {
     uint256 balance = asset.balanceOf(address(this)) - offset;
 
     if (balance > 0) {
-      asset.safeApprove(address(gmxRouter), balance);
+      asset.safeApprove(address(balanceTracker), balance);
       gmxRouter.stakeGmx(balance);
+    }
+  }
+
+  function _harvest() internal {
+    gmxRouter.compound();
+    rewardTracker.claim(address(this));
+
+    uint256 wethBalance = weth.balanceOf(address(this));
+
+    if (wethBalance > 0.001 ether) {
+      weth.safeTransfer(address(router), wethBalance);
+
+      router.exactInputSingle(
+        IV3SwapRouter.ExactInputSingleParams({
+          tokenIn: address(weth),
+          tokenOut: address(asset),
+          fee: fee,
+          recipient: address(this),
+          amountIn: V3Constants.CONTRACT_BALANCE,
+          amountOutMinimum: 0,
+          sqrtPriceLimitX96: 0
+        })
+      );
     }
   }
 }

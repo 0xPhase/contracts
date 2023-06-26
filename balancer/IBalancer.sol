@@ -28,9 +28,10 @@ struct Yield {
 }
 
 enum OffsetState {
-  None,
+  Default,
   Positive,
-  Negative
+  Negative,
+  None
 }
 
 struct Offset {

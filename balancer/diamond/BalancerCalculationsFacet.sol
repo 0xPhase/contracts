@@ -43,6 +43,8 @@ contract BalancerCalculationsFacet is BalancerBase, IBalancerCalculations {
       arr[i].yieldSrc = yield;
 
       if (!infos[i].state) {
+        arr[i].state = OffsetState.None;
+
         unchecked {
           i++;
         }
