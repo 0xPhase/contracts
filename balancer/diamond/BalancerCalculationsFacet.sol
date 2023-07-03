@@ -160,11 +160,11 @@ contract BalancerCalculationsFacet is BalancerBase, IBalancerCalculations {
   function twaa(IYield yieldSrc) public view override returns (uint256) {
     Yield storage info = _s().yield[yieldSrc];
 
-    if (info.start == 0) {
-      return 0;
-    }
-
-    if (_getTime() - info.start < BalancerConstants.APR_MIN_TIME) {
+    if (
+      info.start == 0 ||
+      info.lastDeposit == 0 ||
+      _getTime() - info.start < BalancerConstants.APR_MIN_TIME
+    ) {
       return BalancerConstants.APR_DEFAULT;
     }
 

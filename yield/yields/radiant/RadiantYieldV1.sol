@@ -38,8 +38,16 @@ contract RadiantYieldV1 is RadiantYieldV1Storage {
 
   function _deposit(uint256 offset) internal {
     uint256 amount = asset.balanceOf(address(this)) - offset;
-    asset.safeApprove(address(radiantPool), amount);
-    radiantPool.deposit(address(asset), amount, address(this), 0);
+
+    if (amount > 0) {
+      asset.safeApprove(address(radiantPool), amount);
+
+      try
+        radiantPool.deposit(address(asset), amount, address(this), 0)
+      {} catch {
+        asset.safeApprove(address(radiantPool), 0);
+      }
+    }
   }
 
   /// @inheritdoc	YieldBase

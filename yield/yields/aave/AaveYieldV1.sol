@@ -38,8 +38,14 @@ contract AaveYieldV1 is AaveYieldV1Storage {
 
   function _deposit(uint256 offset) internal {
     uint256 amount = asset.balanceOf(address(this)) - offset;
-    asset.safeApprove(address(aavePool), amount);
-    aavePool.supply(address(asset), amount, address(this), 0);
+
+    if (amount > 0) {
+      asset.safeApprove(address(aavePool), amount);
+
+      try aavePool.supply(address(asset), amount, address(this), 0) {} catch {
+        asset.safeApprove(address(aavePool), 0);
+      }
+    }
   }
 
   /// @inheritdoc	YieldBase
