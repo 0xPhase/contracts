@@ -141,7 +141,13 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
       ast.shares[user]
     );
 
-    require(shares > 0, "BalancerAccountingFacet: Cannot withdraw 0 shares");
+    // Sometimes residue tokens and shares get left inside the Balancer, and we would prefer to not revert in such cases.
+    // A very low balance leads to 0 shares which leads to no tokens and a deposit/withdraw blocking revert.
+    // Such a case easily happens while disabling yield, thus taking all the tokens out.
+    if (shares == 0) {
+      return 0;
+      // revert("BalancerAccountingFacet: Cannot withdraw 0 shares");
+    }
 
     ast.shares[user] -= shares;
     ast.totalShares -= shares;

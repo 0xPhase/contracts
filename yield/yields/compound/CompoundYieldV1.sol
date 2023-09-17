@@ -4,16 +4,17 @@ pragma solidity =0.8.17;
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {AaveYieldV1Storage} from "./IAaveYield.sol";
+import {ICometExt} from "../../../interfaces/compound/comet/ICometExt.sol";
+import {CompoundYieldV1Storage} from "./ICompoundYield.sol";
 import {YieldBase} from "../base/YieldBase.sol";
 import {IYield} from "../../IYield.sol";
 
-contract AaveYieldV1 is AaveYieldV1Storage {
+contract CompoundYieldV1 is CompoundYieldV1Storage {
   using SafeERC20 for IERC20;
 
   /// @inheritdoc	IYield
   function totalBalance() public view override returns (uint256) {
-    return aToken.balanceOf(address(this)) + asset.balanceOf(address(this));
+    return comet.balanceOf(address(this)) + asset.balanceOf(address(this));
   }
 
   /// @inheritdoc	YieldBase
@@ -31,7 +32,7 @@ contract AaveYieldV1 is AaveYieldV1Storage {
       }
     } else if (amount > balance) {
       unchecked {
-        aavePool.withdraw(address(asset), amount - balance, address(this));
+        comet.withdraw(address(asset), amount - balance);
       }
     }
   }
@@ -45,10 +46,10 @@ contract AaveYieldV1 is AaveYieldV1Storage {
     uint256 amount = asset.balanceOf(address(this)) - offset;
 
     if (amount > 0) {
-      asset.safeApprove(address(aavePool), amount);
+      asset.safeApprove(address(comet), amount);
 
-      try aavePool.supply(address(asset), amount, address(this), 0) {} catch {
-        asset.safeApprove(address(aavePool), 0);
+      try comet.supply(address(asset), amount) {} catch {
+        asset.safeApprove(address(comet), 0);
       }
     }
   }
