@@ -28,17 +28,14 @@ abstract contract CompoundYieldV1Storage is
   /// @param db_ The DB contract address
   /// @param asset_ The yield asset
   /// @param comet_ The Compound Comet contract address
-  /// @param cometExt_ The Compound Comet Ext contract address
   function initializeCompoundYieldV1(
     IDB db_,
     IERC20 asset_,
-    IComet comet_,
-    ICometExt cometExt_
+    IComet comet_
   ) external initialize("v1") {
     _initializeElement(db_);
     _initializeBaseYield(asset_, db_.getAddress("BALANCER"));
 
     comet = comet_;
-    cometExt = cometExt_;
   }
 }

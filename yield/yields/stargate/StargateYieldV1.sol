@@ -93,7 +93,11 @@ contract StargateYieldV1 is StargateYieldV1Storage {
         IWETH(address(asset)).deposit{value: nativeBalance}();
       }
 
-      _deposit(amount);
+      balance = asset.balanceOf(address(this));
+
+      if (balance > amount) {
+        _deposit(amount);
+      }
     }
   }
 
