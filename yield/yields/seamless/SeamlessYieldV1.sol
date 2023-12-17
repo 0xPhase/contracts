@@ -20,7 +20,7 @@ contract SeamlessYieldV1 is SeamlessYieldV1Storage {
     IERC20 seam = IERC20(address(sellRoute[0].from));
     uint256 sellBalance = seam.balanceOf(address(this));
 
-    if (sellBalance > 0.025 ether) {
+    if (sellBalance > 0) {
       seam.safeApprove(address(router), sellBalance);
 
       router.swapExactTokensForTokens(
@@ -49,7 +49,7 @@ contract SeamlessYieldV1 is SeamlessYieldV1Storage {
 
     balance = aToken.balanceOf(address(this)) + asset.balanceOf(address(this));
 
-    if (seamBalance > 0.01 ether) {
+    if (seamBalance > 0) {
       uint256[] memory amounts = router.getAmountsOut(seamBalance, sellRoute);
 
       balance += (amounts[amounts.length - 1] * 99) / 100;
