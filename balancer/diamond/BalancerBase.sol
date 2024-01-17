@@ -38,6 +38,10 @@ abstract contract BalancerBase is AccessControlBase, ClockBase {
     uint256 shares
   );
 
+  /// @notice Event emitted when a rebalance is made
+  /// @param asset The rebalanced asset
+  event Rebalance(IERC20 indexed asset);
+
   /// @notice Event emitted when yield apr is set
   /// @param asset The asset
   /// @param apr The apr

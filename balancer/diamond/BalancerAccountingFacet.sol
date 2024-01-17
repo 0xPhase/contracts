@@ -76,6 +76,7 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
     }
 
     uint256 acc = asset.balanceOf(address(this));
+    amount = acc;
 
     for (uint256 i = 0; i < arr.length; ) {
       Offset memory offset = arr[i];
@@ -242,5 +243,85 @@ contract BalancerAccountingFacet is BalancerBase, IBalancerAccounting {
     }
 
     revert("BalancerAccountingFacet: No way to pay requested amount");
+  }
+
+  /// @inheritdoc	IBalancerAccounting
+  /// @notice Rebalances the vault
+  function rebalance(
+    IERC20 asset
+  ) external override onlyRole(BalancerConstants.DEV_ROLE) {
+    emit Rebalance(asset);
+
+    BalancerStorage storage s = _s();
+
+    (
+      Offset[] memory arr,
+      uint256 totalNegative,
+      uint256 totalPositive
+    ) = _calculations().offsets(asset);
+
+    if (arr.length == 0) {
+      return;
+    }
+
+    if (totalPositive > 0) {
+      for (uint256 i = 0; i < arr.length; ) {
+        Offset memory offset = arr[i];
+
+        if (offset.state != OffsetState.Positive) {
+          unchecked {
+            i++;
+          }
+
+          continue;
+        }
+
+        _updateAPR(offset.yieldSrc);
+
+        offset.yieldSrc.withdraw(offset.offset);
+
+        s.yield[offset.yieldSrc].lastDeposit = offset.yieldSrc.totalBalance();
+
+        unchecked {
+          i++;
+        }
+      }
+    }
+
+    if (totalNegative == 0) {
+      return;
+    }
+
+    uint256 acc = asset.balanceOf(address(this));
+
+    for (uint256 i = 0; i < arr.length; ) {
+      Offset memory offset = arr[i];
+
+      if (offset.state != OffsetState.Negative) {
+        unchecked {
+          i++;
+        }
+
+        continue;
+      }
+
+      _updateAPR(offset.yieldSrc);
+
+      // `min()` to account for small inconsistencies with integer division
+      uint256 yieldAmount = MathLib.min(offset.offset, acc);
+
+      asset.safeTransfer(address(offset.yieldSrc), yieldAmount);
+      offset.yieldSrc.deposit(yieldAmount);
+
+      s.yield[offset.yieldSrc].lastDeposit = offset.yieldSrc.totalBalance();
+
+      unchecked {
+        acc -= yieldAmount;
+
+        if (acc == 0) return;
+
+        i++;
+      }
+    }
   }
 }

@@ -26,4 +26,8 @@ interface IBalancerAccounting {
   /// @param user The user id
   /// @return The real amount of tokens withdrawn
   function fullWithdraw(IERC20 asset, uint256 user) external returns (uint256);
+
+  /// @notice Rebalances the vault
+  /// @param asset The asset to rebalance
+  function rebalance(IERC20 asset) external;
 }
